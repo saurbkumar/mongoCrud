@@ -7,9 +7,8 @@ module.exports = {
   start: start,
   stop: stop
 };
-async function start() {
-  // create table and constrain
-  await model.start.sync();
+async function start(dbConfig) {
+  await model.start(dbConfig);
 }
 async function stop() {
   await model.close();

@@ -1,21 +1,35 @@
+const mongoose = require('mongoose');
+
+const mongoHelper = require('../helpers/mongoHelper');
+
 const logger = require('../../logger')(__filename);
-const SQLHelper = require('../helpers/mysqlHelper');
 const shortId = require('../helpers/shortId');
-const User = SQLHelper.sequelize.define(
-  'User',
+
+const userSchema = new mongoose.Schema(
   {
-    id: {
-      type: SQLHelper.dataTypes.STRING,
-      primaryKey: true,
-      defaultValue: shortId.generate
-    },
-    name: { type: SQLHelper.dataTypes.STRING, allowNull: false },
-    age: { type: SQLHelper.dataTypes.SMALLINT, allowNull: false },
-    address: { type: SQLHelper.dataTypes.STRING, allowNull: false },
-    country: { type: SQLHelper.dataTypes.STRING, allowNull: true }
+    _id: String,
+    name: String,
+    age: Number,
+    address: String,
+    country: String
   },
-  { timestamps: true, version: true }
+  {
+    minimize: false,
+    timestamps: true,
+    versionKey: '__v',
+    id: true,
+    toJSON: {
+      transform: function (doc, ret) {
+        ret.id = ret._id;
+        delete ret._id;
+        delete ret.__v;
+        return ret;
+      }
+    }
+  }
 );
+
+const User = mongoose.model('User', userSchema);
 
 module.exports = {
   getUser: getUser,
@@ -24,16 +38,17 @@ module.exports = {
   deleteUser: deleteUser,
   getUsers: getUsers,
   deleteUsers: deleteUsers,
-  start: User, // warning : apart from init, do not use for anything else
-  close: SQLHelper.close
+  start: mongoHelper.connect,
+  close: mongoHelper.close
 };
 
 async function getUser(id) {
-  return await User.findByPk(id);
+  return await User.findById(id);
 }
 
 async function createUser(user) {
   const userData = await User.create({
+    _id: shortId.generate(),
     name: user.name,
     age: user.age,
     address: user.address
@@ -43,7 +58,7 @@ async function createUser(user) {
 }
 
 async function updateUser(id, user) {
-  let result = await User.findByPk(id);
+  let result = await User.findById(id);
   if (!result) {
     logger.error(`updateUser: userId ${id} not found`);
     return null;
@@ -57,26 +72,26 @@ async function updateUser(id, user) {
 }
 
 async function deleteUser(id) {
-  let result = await User.destroy({ where: { id: id } });
-  if (result != 1) {
+  let result = await User.deleteOne({ _id: id });
+  if (result.deletedCount != 1) {
     logger.error(`deleteUser: userId ${id} not found`);
     return false;
   }
   return true;
 }
 async function getUsers(top, skip) {
-  const result = await User.findAndCountAll({
-    where: {},
-    limit: top,
-    offset: skip
+  const result = await User.find({}, [], {
+    limit: top, // number of top document return
+    skip: skip // number of doc to skip
   });
+  const totalDoc = (await User.count({}).lean()) - skip;
   return {
-    count: result.count,
-    values: result.rows
+    count: totalDoc,
+    values: result
   };
 }
 
 async function deleteUsers() {
-  let result = await User.destroy({ where: {} });
+  let result = await User.deleteMany({});
   return { count: result };
 }
