@@ -35,9 +35,9 @@ jobs:
           mongodb-port: 27017
 
       - name: Install dependencies
-      - run: npm run build
+        run: npm run build
 
       - name: Run tests
-      - run: npm test
+        run: npm test
         env:
           CI: true
