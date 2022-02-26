@@ -5,6 +5,7 @@
   "scripts": {
     "start": "node app",
     "test": "mocha",
+    "build": "npm install",
     "coverage": "nyc --reporter=text --reporter=html mocha"
   },
   "dependencies": {
@@ -13,8 +14,9 @@
     "cors": "^2.8.5",
     "express": "^4.17.1",
     "express-openapi-validator": "^4.13.4",
+    "lru-cache": "^7.3.1",
     "mongoose": "^6.1.5",
-    "nanoid": "^3.1.30",
+    "nanoid": "^3.1.31",
     "swagger-ui-express": "^4.2.0",
     "winston": "^3.3.3"
   },

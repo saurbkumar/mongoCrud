@@ -1,35 +1,7 @@
-const mongoose = require('mongoose');
-
 const mongoHelper = require('../helpers/mongoHelper');
 
-const logger = require('../../logger')(__filename);
-const shortId = require('../helpers/shortId');
-
-const userSchema = new mongoose.Schema(
-  {
-    _id: String,
-    name: String,
-    age: Number,
-    address: String,
-    country: String
-  },
-  {
-    minimize: false,
-    timestamps: true,
-    versionKey: '__v',
-    id: true,
-    toJSON: {
-      transform: function (doc, ret) {
-        ret.id = ret._id;
-        delete ret._id;
-        delete ret.__v;
-        return ret;
-      }
-    }
-  }
-);
-
-const User = mongoose.model('User', userSchema);
+const memoryCacheModel = require('../models/memoryCacheModel');
+const mongoModel = require('../models/mongoDbModel');
 
 module.exports = {
   getUser: getUser,
@@ -43,55 +15,36 @@ module.exports = {
 };
 
 async function getUser(id) {
-  return await User.findById(id);
+  let result = memoryCacheModel.getObject(id);
+  if (!result) {
+    result = await mongoModel.getUser(id);
+    if (result) memoryCacheModel.createObject(id, result.toJSON());
+  }
+  return result;
 }
 
 async function createUser(user) {
-  const userData = await User.create({
-    _id: shortId.generate(),
-    name: user.name,
-    age: user.age,
-    address: user.address
-  });
-  logger.debug(`createUser: creating user: ${JSON.stringify(user)}`);
-  return userData;
+  const result = await mongoModel.createUser(user);
+  memoryCacheModel.createObject(result.get('id'), result.toJSON());
+  return result;
 }
 
 async function updateUser(id, user) {
-  let result = await User.findById(id);
-  if (!result) {
-    logger.error(`updateUser: userId ${id} not found`);
-    return null;
-  }
-  if (user.age) result.age = user.age;
-  if (user.address) result.address = user.address;
-  if (user.name) result.name = user.name;
-  logger.debug(`updateUser: updated user: ${JSON.stringify(user)}`);
-  await result.save();
-  return user;
+  const result = await mongoModel.updateUser(id, user);
+  if (result) memoryCacheModel.updateObject(id, result.toJSON());
+  return result;
 }
 
 async function deleteUser(id) {
-  let result = await User.deleteOne({ _id: id });
-  if (result.deletedCount != 1) {
-    logger.error(`deleteUser: userId ${id} not found`);
-    return false;
-  }
-  return true;
+  memoryCacheModel.deleteObject(id);
+  return mongoModel.deleteUser(id);
 }
 async function getUsers(top, skip) {
-  const result = await User.find({}, [], {
-    limit: top, // number of top document return
-    skip: skip // number of doc to skip
-  });
-  const totalDoc = (await User.count({}).lean()) - skip;
-  return {
-    count: totalDoc,
-    values: result
-  };
+  let result = mongoModel.getUsers(top, skip);
+  return result;
 }
 
 async function deleteUsers() {
-  let result = await User.deleteMany({});
-  return { count: result };
+  memoryCacheModel.clear();
+  return mongoModel.deleteUsers();
 }
