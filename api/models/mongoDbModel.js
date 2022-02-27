@@ -38,6 +38,7 @@ module.exports = {
   deleteUser: deleteUser,
   getUsers: getUsers,
   deleteUsers: deleteUsers,
+  copy: copy,
   start: mongoHelper.connect,
   close: mongoHelper.close
 };
@@ -94,4 +95,8 @@ async function getUsers(top, skip) {
 async function deleteUsers() {
   let result = await User.deleteMany({});
   return { count: result };
+}
+
+function copy(dbObj) {
+  return dbObj.toJSON();
 }
