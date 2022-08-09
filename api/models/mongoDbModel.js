@@ -44,6 +44,7 @@ module.exports = {
 };
 
 async function getUser(id) {
+  logger.info(`getUser: getting user for Id: ${id}`);
   return await User.findById(id);
 }
 
@@ -54,11 +55,12 @@ async function createUser(user) {
     age: user.age,
     address: user.address
   });
-  logger.debug(`createUser: creating user: ${JSON.stringify(user)}`);
+  logger.info(`createUser: creating user: ${JSON.stringify(user)}`);
   return userData;
 }
 
 async function updateUser(id, user) {
+  logger.info(`updateUser: updating user for Id: ${id}`);
   let result = await User.findById(id);
   if (!result) {
     logger.error(`updateUser: userId ${id} not found`);
@@ -73,6 +75,7 @@ async function updateUser(id, user) {
 }
 
 async function deleteUser(id) {
+  logger.info(`deleteUser: removing user for Id: ${id}`);
   let result = await User.deleteOne({ _id: id });
   if (result.deletedCount != 1) {
     logger.error(`deleteUser: userId ${id} not found`);
@@ -81,6 +84,7 @@ async function deleteUser(id) {
   return true;
 }
 async function getUsers(top, skip) {
+  logger.info(`getUsers: getting users, top: ${top}, skip: ${skip}`);
   const result = await User.find({}, [], {
     limit: top, // number of top document return
     skip: skip // number of doc to skip
@@ -93,6 +97,7 @@ async function getUsers(top, skip) {
 }
 
 async function deleteUsers() {
+  logger.info(`deleteUsers: removing all users`);
   let result = await User.deleteMany({});
   return { count: result };
 }

@@ -12,7 +12,22 @@ const syncService = require('./api/services/syncService');
 const logger = require('./logger')(__filename);
 
 const v1BasePath = config.App.v1Path;
+const validateResponses = config.App.validateResponses;
+const allowUnknownQueryParameters = config.App.validateResponses;
+const appName = config.App.name.split('-').join('');
 const port = config.App.port;
+
+const client = require('prom-client');
+
+// Create a Registry to register the metrics
+const register = new client.Registry();
+
+client.collectDefaultMetrics({
+  register: register,
+  prefix: appName,
+  gcDurationBuckets: [0.001, 0.01, 0.1, 1, 2, 5],
+  labels: { NODE_APP_INSTANCE: process.env.NODE_APP_INSTANCE }
+});
 
 module.exports = {
   app: app,
@@ -61,19 +76,14 @@ app.use(
   OpenApiValidator.middleware({
     apiSpec: `${__dirname}/api/swagger/swagger.json`,
     validateRequests: {
-      allowUnknownQueryParameters: false
+      allowUnknownQueryParameters: allowUnknownQueryParameters
     },
-    validateResponses: false // false by default
+    validateResponses: validateResponses // false by default
   })
 );
 
 // eslint-disable-next-line no-unused-vars
 app.use(function (err, req, res, next) {
-  logger.info(`${req.url}`, {
-    statusCode: res.statusCode,
-    method: req.method,
-    action: 'End'
-  });
   res.status(err.status || 500).json({
     message: err.message,
     errors: err.errors
@@ -115,8 +125,21 @@ for (const [path, pathAttributes] of Object.entries(swaggerDocument.paths)) {
       `${v1BasePath}/${pathPattern.join('/')}`,
       controller[`${operationId}`]
     );
+    const httpRequestTimer = new client.Histogram({
+      name: operationId,
+      help: 'Duration of HTTP requests in seconds',
+      labelNames: ['method', 'route', 'code'],
+      buckets: [0.1, 0.3, 0.5, 0.7, 1, 3, 5, 7, 10] // 0.1 to 10 seconds
+    });
+    // Register the histogram
+    register.registerMetric(httpRequestTimer);
   }
 }
+
+app.get('/metrics', async (req, res) => {
+  res.setHeader('Content-Type', register.contentType);
+  res.send(await register.metrics());
+});
 
 if (require.main === module) {
   app.listen(port, async () => {
