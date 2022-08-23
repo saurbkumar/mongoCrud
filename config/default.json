@@ -1,7 +1,6 @@
 {
   "App": {
     "name": "user-service",
-    "v1Path": "/v1/user-service",
     "port": 3000,
     "validateResponses": false,
     "allowUnknownQueryParameters": false

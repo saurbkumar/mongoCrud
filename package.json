@@ -5,7 +5,8 @@
   "scripts": {
     "start": "node app",
     "test": "mocha",
-    "build": "npm install",
+    "build": "npm install && npm run lint",
+    "lint": "eslint .  --ext .js",
     "coverage": "nyc --reporter=text --reporter=html mocha"
   },
   "dependencies": {

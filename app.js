@@ -9,41 +9,65 @@ const OpenApiValidator = require('express-openapi-validator');
 const swaggerDocument = require('./api/swagger/swagger.json');
 const syncService = require('./api/services/syncService');
 
+const prometheusHelper = require('./api/helpers/prometheusHelper');
 const logger = require('./logger')(__filename);
 
-const v1BasePath = config.App.v1Path;
 const validateResponses = config.App.validateResponses;
 const allowUnknownQueryParameters = config.App.validateResponses;
-const appName = config.App.name.split('-').join('');
 const port = config.App.port;
+const appName = config.App.name;
 
-const client = require('prom-client');
-
-// Create a Registry to register the metrics
-const register = new client.Registry();
-
-client.collectDefaultMetrics({
-  register: register,
-  prefix: appName,
-  gcDurationBuckets: [0.001, 0.01, 0.1, 1, 2, 5],
-  labels: { NODE_APP_INSTANCE: process.env.NODE_APP_INSTANCE }
-});
+const swaggerAttribures = {}; // map for swagger attributes
 
 module.exports = {
   app: app,
   start: syncService.start,
   stop: syncService.stop
 };
+function getSwaggerPath(path, verb) {
+  path.split(appName)[0];
+  const pathArray = path.split(appName);
+  const version = pathArray[0];
+  const basePath = pathArray[1];
+  return `${version}${verb.toLocaleLowerCase()}${basePath.split('/').length}`;
+}
 app.use(cors());
 
 app.use(function (req, res, next) {
-  logger.info(`${req.url}`, { method: req.method, action: 'Start' });
+  // get the request path
+  const reqPath = getSwaggerPath(req.url, req.method);
+  // attach swagger attr to the locals
+  const attr = swaggerAttribures[`${reqPath}`];
+
+  // store the timer to locals
+  req.app.locals = {
+    prometheusTimer: startTimer(),
+    swagger: attr
+  };
+
+  if (
+    req?.app?.locals?.swagger &&
+    req?.app?.locals?.swagger['x-dont-log'] == false
+  ) {
+    logger.info(`${req.url}`, { method: req.method, action: 'Start' });
+  }
   next();
 });
 
+function startTimer() {
+  return prometheusHelper.getRequestTimer().startTimer();
+}
+
+function stopTimer(prometheusTimer, path, code, method) {
+  // cleanup path - remove query parameter
+  prometheusTimer({
+    code: code,
+    method: method,
+    path: path
+  });
+}
 app.use(function (req, res, next) {
-  // console.log('---start--in cors-' + als.get('id'));
-  req.headers['x-correlation-id']; // correlationId
+  req.headers['x-correlation-id']; // TODO : correlationId
 
   res.header('Access-Control-Allow-Origin', '*');
   res.header(
@@ -65,11 +89,7 @@ SwaggerParser.validate(swaggerDocument, (err) => {
   }
 });
 
-app.use(
-  `/${config.App.name}/docs`,
-  swaggerUi.serve,
-  swaggerUi.setup(swaggerDocument)
-);
+app.use(`/${appName}/docs`, swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // validation middleware
 app.use(
@@ -84,7 +104,24 @@ app.use(
 
 // eslint-disable-next-line no-unused-vars
 app.use(function (err, req, res, next) {
-  res.status(err.status || 500).json({
+  // for error handling
+
+  logger.info(`${req.url}`, {
+    statusCode: res.statusCode,
+    method: req.method,
+    action: 'End'
+  });
+
+  if (req?.app?.locals?.prometheusTimer) {
+    stopTimer(
+      req.app.locals.prometheusTimer,
+      req.app?.locals?.swagger?.path || req.path,
+      err?.status || 500,
+      req.method
+    );
+  }
+
+  res.status(err?.status || 500).json({
     message: err.message,
     errors: err.errors
   });
@@ -92,15 +129,32 @@ app.use(function (err, req, res, next) {
 
 app.use(function (req, res, next) {
   res.on('finish', function () {
-    logger.info(`${req.url}`, {
-      statusCode: res.statusCode,
-      method: req.method,
-      action: 'End'
-    });
+    // for request metrics
+    if (req?.app?.locals?.prometheusTimer) {
+      stopTimer(
+        req.app.locals.prometheusTimer,
+        app?.locals?.swagger?.path || req.url,
+        res.statusCode,
+        req.method
+      );
+    }
+    // for request logging
+    if (
+      req?.app?.locals?.swagger &&
+      !req.app.locals.swagger['x-dont-log'] === false
+    ) {
+      logger.info(`${req.url}`, {
+        statusCode: res.statusCode,
+        method: req.method,
+        action: 'End'
+      });
+    }
   });
   next();
 });
 
+const ignoreSwaggerAttr = ['parameters', 'requestBody', 'responses'];
+const v1BasePath = swaggerDocument.servers[0].url; // get the api version, this is specific to swagger
 // read swagger file and attach all path
 for (const [path, pathAttributes] of Object.entries(swaggerDocument.paths)) {
   const controllerId = pathAttributes['x-controller'];
@@ -114,32 +168,32 @@ for (const [path, pathAttributes] of Object.entries(swaggerDocument.paths)) {
       // convert : /path1/{id1}/path2/{id2}/path3 ==> /path1/:id1/path2/id2/path3
       if (element.length) {
         if (element.endsWith('}') && element.startsWith('{')) {
-          pathPattern.push(`:${element.slice(1, -1)}`); // remove {}
+          pathPattern.push(`:${element.slice(1, -1)}`); // remove {} and add :
         } else {
           pathPattern.push(element);
         }
       }
     });
-    // adding path dynamically like app.get("/v1/path1/:id1/path2/:id2/path3", helloController.hello1);
+    // adding path dynamically like app.get("/path1/:id1/path2/:id2/path3", helloController.hello1);
+    const expressPath = pathPattern.join('/');
     app[`${verb}`](
-      `${v1BasePath}/${pathPattern.join('/')}`,
+      `${v1BasePath}/${expressPath}`,
       controller[`${operationId}`]
     );
-    const httpRequestTimer = new client.Histogram({
-      name: operationId,
-      help: 'Duration of HTTP requests in seconds',
-      labelNames: ['method', 'route', 'code'],
-      buckets: [0.1, 0.3, 0.5, 0.7, 1, 3, 5, 7, 10] // 0.1 to 10 seconds
-    });
-    // Register the histogram
-    register.registerMetric(httpRequestTimer);
+
+    // create a map for swagger file property lookup for every request
+    // key is verb and path length, the path length is unique for a given verb
+    const swaggerAttrValue = {};
+    for (const [attribute, swaggerVal] of Object.entries(value)) {
+      if (!ignoreSwaggerAttr.includes(attribute)) {
+        swaggerAttrValue[attribute] = swaggerVal;
+      }
+    }
+    swaggerAttrValue['path'] = `${v1BasePath.split(appName)[0]}${expressPath}`;
+    const swaggerPath = `${v1BasePath}/${expressPath}`; // version is also needed
+    swaggerAttribures[getSwaggerPath(swaggerPath, verb)] = swaggerAttrValue;
   }
 }
-
-app.get('/metrics', async (req, res) => {
-  res.setHeader('Content-Type', register.contentType);
-  res.send(await register.metrics());
-});
 
 if (require.main === module) {
   app.listen(port, async () => {
