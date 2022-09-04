@@ -5,7 +5,8 @@
   "scripts": {
     "start": "node app",
     "test": "mocha",
-    "build": "npm install",
+    "build": "npm install && npm run lint",
+    "lint": "eslint .  --ext .js",
     "coverage": "nyc --reporter=text --reporter=html mocha"
   },
   "dependencies": {
@@ -17,6 +18,7 @@
     "lru-cache": "^7.3.1",
     "mongoose": "^6.4.6",
     "nanoid": "^3.1.31",
+    "prom-client": "^14.0.1",
     "swagger-ui-express": "^4.2.0",
     "winston": "^3.3.3"
   },

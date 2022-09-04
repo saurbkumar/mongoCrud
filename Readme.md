@@ -59,13 +59,24 @@ Type `npm start`. Few lines will comes up and then go to ["http://localhost:3000
 
 ## Roadmap
 
-- [x] Add basic test cases
+- [X] Add basic test cases
+- [X] Add Metrics
 - [ ] Add correlationId to every log
 - [ ] Add projection support
 - [ ] Add pagination and projection test cases
 
-<!-- CONTRIBUTING -->
+<!-- Application Metrics -->
 
+## Metrics
+
+All the application metrics like CPU usages, event lag delay, TPM, and p95 are available.
+
+The application `/metrics` end point gives the [prometheus](https://prometheus.io/) compatible data. If you want to see what it will look likes, just inside the `metric` folder and docker-compose-up command. It will run Prometheus on the 9090 port and Grafann on the 9000 port. Go to Grafana dashboard. Go to grafana dashboard [locally](http://localhost:9000/). You should see something like:
+![Sample Grafan Dashboard](metrics/Capture.PNG "Sample Grafan Dashboard")
+
+<p align="right">(<a href="#top">back to top</a>)</p>
+
+<!-- CONTRIBUTING -->
 ## Contributing
 
 Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.

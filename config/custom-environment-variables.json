@@ -1,6 +1,14 @@
 {
   "App": {
-    "port": "APP_PORT"
+    "port": "APP_PORT",
+    "validateResponses": {
+      "__name": "VALIDATE_RESPONSE",
+      "__format": "json"
+    },
+    "allowUnknownQueryParameters": {
+      "__name": "ALLOW_UNKNOWN_QUERY_PARAMETERS",
+      "__format": "json"
+    }
   },
   "Log": {
     "level": "LOG_LEVEL"

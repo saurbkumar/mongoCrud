@@ -1,12 +1,15 @@
 const service = require('../services/service');
 const logger = require('../../logger')(__filename);
+
+const middlewares = require('../helpers/middlewares');
+
 module.exports = {
-  getUser: getUser,
-  createUser: createUser,
-  updateUser: updateUser,
-  deleteUser: deleteUser,
-  getUsers: getUsers,
-  deleteUsers: deleteUsers
+  getUser: middlewares.controllerMiddleware(getUser),
+  createUser: middlewares.controllerMiddleware(createUser),
+  updateUser: middlewares.controllerMiddleware(updateUser),
+  deleteUser: middlewares.controllerMiddleware(deleteUser),
+  getUsers: middlewares.controllerMiddleware(getUsers),
+  deleteUsers: middlewares.controllerMiddleware(deleteUsers)
 };
 
 async function getUser(req, res) {

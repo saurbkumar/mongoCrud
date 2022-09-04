@@ -11,7 +11,8 @@ const syncService = require('./api/services/syncService');
 
 const logger = require('./logger')(__filename);
 
-const v1BasePath = config.App.v1Path;
+const validateResponses = config.App.validateResponses;
+const allowUnknownQueryParameters = config.App.validateResponses;
 const port = config.App.port;
 
 module.exports = {
@@ -61,19 +62,14 @@ app.use(
   OpenApiValidator.middleware({
     apiSpec: `${__dirname}/api/swagger/swagger.json`,
     validateRequests: {
-      allowUnknownQueryParameters: false
+      allowUnknownQueryParameters: allowUnknownQueryParameters
     },
-    validateResponses: false // false by default
+    validateResponses: validateResponses // false by default
   })
 );
 
 // eslint-disable-next-line no-unused-vars
 app.use(function (err, req, res, next) {
-  logger.info(`${req.url}`, {
-    statusCode: res.statusCode,
-    method: req.method,
-    action: 'End'
-  });
   res.status(err.status || 500).json({
     message: err.message,
     errors: err.errors
@@ -92,6 +88,8 @@ app.use(function (req, res, next) {
 });
 
 // read swagger file and attach all path
+const v1BasePath = swaggerDocument.servers[0].url; // get the api version, this is specific to swagger
+
 for (const [path, pathAttributes] of Object.entries(swaggerDocument.paths)) {
   const controllerId = pathAttributes['x-controller'];
   let controllerPath = `${__dirname}/api/controllers/${controllerId}`;
@@ -104,7 +102,7 @@ for (const [path, pathAttributes] of Object.entries(swaggerDocument.paths)) {
       // convert : /path1/{id1}/path2/{id2}/path3 ==> /path1/:id1/path2/id2/path3
       if (element.length) {
         if (element.endsWith('}') && element.startsWith('{')) {
-          pathPattern.push(`:${element.slice(1, -1)}`); // remove {}
+          pathPattern.push(`:${element.slice(1, -1)}`); // remove {} and add :
         } else {
           pathPattern.push(element);
         }
