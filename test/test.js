@@ -18,7 +18,8 @@ describe('UserService', async function () {
     await App.start(config.Database);
     request = supertest.agent(App.app).host(`http://localhost:${port}`).set({
       'X-Correlation-Id': shortId.generate(),
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      Accept: 'application/json'
     });
   });
 
@@ -28,10 +29,7 @@ describe('UserService', async function () {
 
   afterEach(async function () {
     // delete all resources
-    await request
-      .delete(v1BasePath + '/users')
-      .set('Accept', 'application/json')
-      .expect(200);
+    await request.delete(v1BasePath + '/users').expect(200);
   });
 
   function createReq() {
@@ -49,7 +47,6 @@ describe('UserService', async function () {
     for (let index = 0; index < count; index++) {
       const promise = request
         .post(v1BasePath + '/users')
-        .set('Accept', 'application/json')
         .send(createReq())
         .expect(200);
       promises.push(promise);
@@ -63,33 +60,25 @@ describe('UserService', async function () {
       it('FailAdditionalQueryParameter', async function () {
         await request
           .get(v1BasePath + '/users?skip=20&unknown=test')
-          .set('Accept', 'application/json')
-          .expect('Content-Type', /json/)
           .expect(400);
       });
 
       it('FailGetUserRandomId', async function () {
         // get all users
-        let users = await request
-          .get(v1BasePath + '/users')
-          .set('Accept', 'application/json')
-          .expect(200);
+        let users = await request.get(v1BasePath + '/users').expect(200);
 
         users.body.should.have.property('count', 0);
         users.body.should.have.property('values');
         users.body.values.length.should.be.eql(0);
 
-        await request
-          .get(v1BasePath + '/users/' + 'randomId')
-          .set('Accept', 'application/json')
-          .expect(404);
+        await request.get(v1BasePath + '/users/' + 'randomId').expect(404);
       });
 
       it('getUser', async function () {
         // get all users
         let users = await request
           .get(v1BasePath + '/users')
-          .set('Accept', 'application/json')
+
           .expect(200);
 
         users.body.should.have.property('count', 0);
@@ -99,7 +88,6 @@ describe('UserService', async function () {
         const req = createReq();
         const res = await request
           .post(v1BasePath + '/users')
-          .set('Accept', 'application/json')
           .send(req)
           .expect(200);
         res.body.should.have.property('name', req.name);
@@ -111,7 +99,6 @@ describe('UserService', async function () {
         // get user and check properties
         let user = await request
           .get(v1BasePath + '/users/' + userId)
-          .set('Accept', 'application/json')
           .send(req)
           .expect(200);
         user.body.should.have.property('name', req.name);
@@ -122,10 +109,7 @@ describe('UserService', async function () {
 
       it('getAllUsers', async function () {
         // get all users
-        let users = await request
-          .get(v1BasePath + '/users')
-          .set('Accept', 'application/json')
-          .expect(200);
+        let users = await request.get(v1BasePath + '/users').expect(200);
 
         users.body.should.have.property('count', 0);
         users.body.should.have.property('values');
@@ -133,10 +117,7 @@ describe('UserService', async function () {
         const count = 3;
         await bulkCreateUsers(count);
         // get user and check properties
-        users = await request
-          .get(v1BasePath + '/users')
-          .set('Accept', 'application/json')
-          .expect(200);
+        users = await request.get(v1BasePath + '/users').expect(200);
 
         users.body.should.have.property('count', count);
         users.body.should.have.property('values');
@@ -150,14 +131,10 @@ describe('UserService', async function () {
         delete req.name;
         await request
           .post(v1BasePath + '/users')
-          .set('Accept', 'application/json')
           .send(req)
           .expect(400);
 
-        let users = await request
-          .get(v1BasePath + '/users')
-          .set('Accept', 'application/json')
-          .expect(200);
+        let users = await request.get(v1BasePath + '/users').expect(200);
 
         users.body.should.have.property('count', 0);
         users.body.should.have.property('values');
@@ -169,14 +146,10 @@ describe('UserService', async function () {
         req.name = '$*name';
         await request
           .post(v1BasePath + '/users')
-          .set('Accept', 'application/json')
           .send(req)
           .expect(400);
 
-        let users = await request
-          .get(v1BasePath + '/users')
-          .set('Accept', 'application/json')
-          .expect(200);
+        let users = await request.get(v1BasePath + '/users').expect(200);
 
         users.body.should.have.property('count', 0);
         users.body.should.have.property('values');
@@ -188,14 +161,10 @@ describe('UserService', async function () {
         delete req.address;
         await request
           .post(v1BasePath + '/users')
-          .set('Accept', 'application/json')
           .send(req)
           .expect(400);
 
-        let users = await request
-          .get(v1BasePath + '/users')
-          .set('Accept', 'application/json')
-          .expect(200);
+        let users = await request.get(v1BasePath + '/users').expect(200);
 
         users.body.should.have.property('count', 0);
         users.body.should.have.property('values');
@@ -207,14 +176,10 @@ describe('UserService', async function () {
         req.address = '$%Address';
         await request
           .post(v1BasePath + '/users')
-          .set('Accept', 'application/json')
           .send(req)
           .expect(400);
 
-        let users = await request
-          .get(v1BasePath + '/users')
-          .set('Accept', 'application/json')
-          .expect(200);
+        let users = await request.get(v1BasePath + '/users').expect(200);
 
         users.body.should.have.property('count', 0);
         users.body.should.have.property('values');
@@ -226,14 +191,10 @@ describe('UserService', async function () {
         delete req.age;
         await request
           .post(v1BasePath + '/users')
-          .set('Accept', 'application/json')
           .send(req)
           .expect(400);
 
-        let users = await request
-          .get(v1BasePath + '/users')
-          .set('Accept', 'application/json')
-          .expect(200);
+        let users = await request.get(v1BasePath + '/users').expect(200);
 
         users.body.should.have.property('count', 0);
         users.body.should.have.property('values');
@@ -245,27 +206,21 @@ describe('UserService', async function () {
         req.age = -1; // min age is 0
         await request
           .post(v1BasePath + '/users')
-          .set('Accept', 'application/json')
           .send(req)
           .expect(400);
         req.age = 151; //max age is 150
         await request
           .post(v1BasePath + '/users')
-          .set('Accept', 'application/json')
           .send(req)
           .expect(400);
 
         req.age = '150'; // age should be a string
         await request
           .post(v1BasePath + '/users')
-          .set('Accept', 'application/json')
           .send(req)
           .expect(400);
 
-        let users = await request
-          .get(v1BasePath + '/users')
-          .set('Accept', 'application/json')
-          .expect(200);
+        let users = await request.get(v1BasePath + '/users').expect(200);
 
         users.body.should.have.property('count', 0);
         users.body.should.have.property('values');
@@ -276,7 +231,6 @@ describe('UserService', async function () {
         const req = createReq();
         const res = await request
           .post(v1BasePath + '/users')
-          .set('Accept', 'application/json')
           .send(req)
           .expect(200);
         res.body.should.have.property('name', req.name);
@@ -287,7 +241,6 @@ describe('UserService', async function () {
         // get user and check properties
         const user = await request
           .get(v1BasePath + '/users/' + userId)
-          .set('Accept', 'application/json')
           .send(req)
           .expect(200);
         user.body.should.have.property('name', req.name);
@@ -301,7 +254,6 @@ describe('UserService', async function () {
         delete req.country;
         const res = await request
           .post(v1BasePath + '/users')
-          .set('Accept', 'application/json')
           .send(req)
           .expect(200);
         res.body.should.have.property('name', req.name);
@@ -312,7 +264,6 @@ describe('UserService', async function () {
         // get user and check properties
         const user = await request
           .get(v1BasePath + '/users/' + userId)
-          .set('Accept', 'application/json')
           .send(req)
           .expect(200);
         user.body.should.have.property('name', req.name);
@@ -327,7 +278,6 @@ describe('UserService', async function () {
         const req = createReq();
         await request
           .post(v1BasePath + '/users')
-          .set('Accept', 'application/json')
           .send(req)
           .expect(200);
 
@@ -336,7 +286,6 @@ describe('UserService', async function () {
         };
         await request
           .patch(v1BasePath + '/users/' + 'randomUserId')
-          .set('Accept', 'application/json')
           .send(userNamePatchReq)
           .expect(404);
       });
@@ -345,7 +294,6 @@ describe('UserService', async function () {
         const req = createReq();
         const res = await request
           .post(v1BasePath + '/users')
-          .set('Accept', 'application/json')
           .send(req)
           .expect(200);
         const userId = res.body.id;
@@ -356,13 +304,11 @@ describe('UserService', async function () {
         };
         await request
           .patch(v1BasePath + '/users/' + userId)
-          .set('Accept', 'application/json')
           .send(userNamePatchReq)
           .expect(200);
         // get user and check name
         let user = await request
           .get(v1BasePath + '/users/' + userId)
-          .set('Accept', 'application/json')
           .expect(200);
         user.body.should.have.property('name', userNamePatchReq.name);
         user.body.should.have.property('age', req.age);
@@ -375,14 +321,10 @@ describe('UserService', async function () {
         };
         await request
           .patch(v1BasePath + '/users/' + userId)
-          .set('Accept', 'application/json')
           .send(userAgePatchReq)
           .expect(200);
         // get user and check age
-        user = await request
-          .get(v1BasePath + '/users/' + userId)
-          .set('Accept', 'application/json')
-          .expect(200);
+        user = await request.get(v1BasePath + '/users/' + userId).expect(200);
         user.body.should.have.property('name', userNamePatchReq.name);
         user.body.should.have.property('age', userAgePatchReq.age);
         user.body.should.have.property('address', req.address);
@@ -394,14 +336,10 @@ describe('UserService', async function () {
         };
         await request
           .patch(v1BasePath + '/users/' + userId)
-          .set('Accept', 'application/json')
           .send(updateAddressPatchReq)
           .expect(200);
         // get user and check address
-        user = await request
-          .get(v1BasePath + '/users/' + userId)
-          .set('Accept', 'application/json')
-          .expect(200);
+        user = await request.get(v1BasePath + '/users/' + userId).expect(200);
         user.body.should.have.property('name', userNamePatchReq.name);
         user.body.should.have.property('age', userAgePatchReq.age);
         user.body.should.have.property(
@@ -417,7 +355,6 @@ describe('UserService', async function () {
         const req = createReq();
         const res = await request
           .post(v1BasePath + '/users')
-          .set('Accept', 'application/json')
           .send(req)
           .expect(200);
         res.body.should.have.property('name', req.name);
@@ -426,22 +363,15 @@ describe('UserService', async function () {
         res.body.should.have.property('id');
         const userId = res.body.id;
 
-        await request
-          .delete(v1BasePath + '/users/' + 'randomId')
-          .set('Accept', 'application/json')
-          .expect(404);
+        await request.delete(v1BasePath + '/users/' + 'randomId').expect(404);
         // get user again and check
-        await request
-          .get(v1BasePath + '/users/' + userId)
-          .set('Accept', 'application/json')
-          .expect(200);
+        await request.get(v1BasePath + '/users/' + userId).expect(200);
       });
 
       it('DeleteUser', async function () {
         const req = createReq();
         let res = await request
           .post(v1BasePath + '/users')
-          .set('Accept', 'application/json')
           .send(req)
           .expect(200);
         res.body.should.have.property('name', req.name);
@@ -450,20 +380,11 @@ describe('UserService', async function () {
         res.body.should.have.property('id');
         const userId = res.body.id;
 
-        await request
-          .delete(v1BasePath + '/users/' + userId)
-          .set('Accept', 'application/json')
-          .expect(204);
+        await request.delete(v1BasePath + '/users/' + userId).expect(204);
         // get user and fail
-        await request
-          .get(v1BasePath + '/users/' + userId)
-          .set('Accept', 'application/json')
-          .expect(404);
+        await request.get(v1BasePath + '/users/' + userId).expect(404);
         // get all users
-        res = await request
-          .get(v1BasePath + '/users')
-          .set('Accept', 'application/json')
-          .expect(200);
+        res = await request.get(v1BasePath + '/users').expect(200);
         res.body.should.have.property('count', 0);
         res.body.should.have.property('values');
         res.body.values.length.should.be.eql(0);
@@ -473,14 +394,36 @@ describe('UserService', async function () {
         const count = 3;
         await bulkCreateUsers(count);
 
-        let res = await request
-          .get(v1BasePath + '/users')
-          .set('Accept', 'application/json')
-          .expect(200);
+        let res = await request.get(v1BasePath + '/users').expect(200);
         res.body.should.have.property('count', count);
         res.body.should.have.property('values');
         res.body.values.length.should.be.eql(count);
       });
+    });
+  });
+
+  describe('PaginationAndProjection', async function () {
+    it.only('PaginateUsers', async function () {
+      // create bulk users
+      const count = 20;
+      const skip = 8;
+      const top = 10;
+      await bulkCreateUsers(count);
+      // get only top 10
+      let res = await request
+        .get(v1BasePath + `/users?$top=${top}`)
+        .expect(200);
+      res.body.should.have.property('count', count);
+      res.body.should.have.property('values');
+      res.body.values.should.have.length(top);
+
+      // apply skip
+      res = await request
+        .get(v1BasePath + `/users?$top=${top}&$skip=${skip}`)
+        .expect(200);
+      res.body.should.have.property('count', count - skip);
+      res.body.should.have.property('values');
+      res.body.values.should.have.length(top);
     });
   });
 });
