@@ -211,7 +211,9 @@
             "description": "Id of user",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 12
             }
           }
         ],
@@ -422,7 +424,7 @@
       },
       "Metrics": {
         "type": "string",
-        "description": "# HELP userservice_process_cpu_user_seconds_total Total user CPU time spent in seconds. \n# TYPE userservice_process_cpu_user_seconds_total counter\n userservice_process_cpu_user_seconds_total{NODE_APP_INSTANCE='undefined'} 182.82899999999137"
+        "example": "# HELP userservice_process_cpu_user_seconds_total Total user CPU time spent in seconds. \n# TYPE userservice_process_cpu_user_seconds_total counter\n userservice_process_cpu_user_seconds_total{NODE_APP_INSTANCE='abcd'} 182.82899999999137"
       },
       "Error": {
         "properties": {

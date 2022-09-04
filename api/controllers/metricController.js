@@ -1,7 +1,9 @@
 const metricService = require('../services/metricService');
 const logger = require('../../logger')(__filename);
+const middlewares = require('../helpers/middlewares');
+
 module.exports = {
-  getMetrics: getMetrics
+  getMetrics: middlewares.controllerMiddleware(getMetrics)
 };
 
 async function getMetrics(req, res) {
