@@ -8,7 +8,7 @@ const shortId = require('../api/helpers/shortId');
 const logger = require('../logger');
 logger('unittest.log').switchToFile();
 require('should');
-const v1BasePath = config.App.v1Path;
+const v1BasePath = '/v1/user-service';
 
 describe('UserService', async function () {
   let request;
