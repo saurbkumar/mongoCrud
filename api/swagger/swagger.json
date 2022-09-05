@@ -87,6 +87,18 @@
               "minimum": 0,
               "default": 0
             }
+          },
+          {
+            "name": "$sortBy",
+            "in": "query",
+            "description": "This will sort documents by the database filed, if the filed is not availabe then that will return bad request. Default is no sort \n To sort document format is '+/-<dbField>'. '+' is for ascending and '-' is for descending order. For multiple fields use space",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maximum": 10,
+              "minLength": 1,
+              "maxLength": 12
+            }
           }
         ],
         "responses": {
@@ -254,7 +266,9 @@
             "description": "Id of user",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 12
             }
           }
         ],
@@ -310,7 +324,9 @@
             "description": "Id of user",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 12
             }
           }
         ],

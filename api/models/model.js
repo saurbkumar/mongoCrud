@@ -37,8 +37,9 @@ async function deleteUser(id) {
   memoryCacheModel.deleteObject(id);
   return dbModel.deleteUser(id);
 }
-async function getUsers(top, skip) {
-  let result = dbModel.getUsers(top, skip);
+async function getUsers(top, skip, sortBy) {
+  // TODO: Build cache here
+  let result = dbModel.getUsers(top, skip, sortBy);
   return result;
 }
 

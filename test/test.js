@@ -32,13 +32,22 @@ describe('UserService', async function () {
     await request.delete(v1BasePath + '/users').expect(200);
   });
 
-  function createReq() {
-    return {
-      name: `name${Math.floor(Math.random() * 10000)}`,
-      age: Math.floor(Math.random() * 100),
-      address: `Address ${Math.floor(Math.random() * 10000)}`,
-      country: 'USA'
-    };
+  function createReq(count, index) {
+    if (count != undefined && index != undefined) {
+      return {
+        name: `name${count - index}`,
+        age: index,
+        address: `Address${index}`,
+        country: 'USA'
+      };
+    } else {
+      return {
+        name: `name${Math.floor(Math.random() * 10000)}`,
+        age: Math.floor(Math.random() * 100),
+        address: `Address ${Math.floor(Math.random() * 10000)}`,
+        country: 'USA'
+      };
+    }
   }
 
   async function bulkCreateUsers(count) {
@@ -47,7 +56,7 @@ describe('UserService', async function () {
     for (let index = 0; index < count; index++) {
       const promise = request
         .post(v1BasePath + '/users')
-        .send(createReq())
+        .send(createReq(count, index))
         .expect(200);
       promises.push(promise);
     }
@@ -72,6 +81,19 @@ describe('UserService', async function () {
         users.body.values.length.should.be.eql(0);
 
         await request.get(v1BasePath + '/users/' + 'randomId').expect(404);
+      });
+
+      it('FailGetUserTooLongUserId', async function () {
+        // get all users
+        let users = await request.get(v1BasePath + '/users').expect(200);
+
+        users.body.should.have.property('count', 0);
+        users.body.should.have.property('values');
+        users.body.values.length.should.be.eql(0);
+
+        await request
+          .get(v1BasePath + '/users/' + 'thisIsReallyLongUserIsMaxIs12')
+          .expect(400);
       });
 
       it('getUser', async function () {
@@ -290,6 +312,16 @@ describe('UserService', async function () {
           .expect(404);
       });
 
+      it('FailUpdateTooLongUserId', async function () {
+        const userNamePatchReq = {
+          name: 'someRandomName'
+        };
+        await request
+          .patch(v1BasePath + '/users/' + 'thisIsReallyLongUserIsMaxIs12')
+          .send(userNamePatchReq)
+          .expect(400);
+      });
+
       it('UpdateUser', async function () {
         const req = createReq();
         const res = await request
@@ -368,6 +400,25 @@ describe('UserService', async function () {
         await request.get(v1BasePath + '/users/' + userId).expect(200);
       });
 
+      it('FailDeleteLongUserId', async function () {
+        const req = createReq();
+        const res = await request
+          .post(v1BasePath + '/users')
+          .send(req)
+          .expect(200);
+        res.body.should.have.property('name', req.name);
+        res.body.should.have.property('age', req.age);
+        res.body.should.have.property('address', req.address);
+        res.body.should.have.property('id');
+        const userId = res.body.id;
+
+        await request
+          .delete(v1BasePath + '/users/' + 'thisIsReallyLongUserIsMaxIs12')
+          .expect(400);
+        // get user again and check
+        await request.get(v1BasePath + '/users/' + userId).expect(200);
+      });
+
       it('DeleteUser', async function () {
         const req = createReq();
         let res = await request
@@ -403,7 +454,20 @@ describe('UserService', async function () {
   });
 
   describe('PaginationAndProjection', async function () {
-    it.only('PaginateUsers', async function () {
+    it('FailPaginateBadPaginationData', async function () {
+      // create bulk users
+      const count = 20;
+      const skip = 8000; // to large
+      const top = 1000; // to large
+      await bulkCreateUsers(count);
+      // get only top 10
+      await request.get(v1BasePath + `/users?$top=${top}`).expect(400);
+
+      // apply skip
+      await request.get(v1BasePath + `/users?$skip=${skip}`).expect(400);
+    });
+
+    it('PaginateUsers', async function () {
       // create bulk users
       const count = 20;
       const skip = 8;
@@ -424,6 +488,46 @@ describe('UserService', async function () {
       res.body.should.have.property('count', count - skip);
       res.body.should.have.property('values');
       res.body.values.should.have.length(top);
+
+      // apply skip
+      res = await request
+        .get(v1BasePath + `/users?$top=13&$skip=7`)
+        .expect(200);
+      res.body.should.have.property('count', 13);
+      res.body.should.have.property('values');
+      res.body.values.should.have.length(13);
+
+      // apply skip
+      res = await request
+        .get(v1BasePath + `/users?$top=20&$skip=21`)
+        .expect(200);
+      res.body.should.have.property('count', 0);
+      res.body.should.have.property('values');
+      res.body.values.should.have.length(0);
+    });
+
+    it('SortUsers', async function () {
+      // create bulk users
+      const count = 20;
+      await bulkCreateUsers(count);
+      let params = new URLSearchParams();
+      params.append('$sortBy', '-age');
+      let res = await request
+        .get(v1BasePath + '/users?' + params.toString())
+        .expect(200);
+      res.body.should.have.property('count', count);
+      res.body.should.have.property('values');
+      for (let index = 0; index++; index < res.body.values.length) {
+        res.body.values[index].age.should.be.eql(index);
+      }
+
+      params = new URLSearchParams();
+      params.append('$sortBy', '+age');
+      res = await request
+        .get(v1BasePath + '/users?' + params.toString())
+        .expect(200);
+      res.body.should.have.property('count', count);
+      res.body.should.have.property('values');
     });
   });
 });

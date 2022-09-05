@@ -69,7 +69,11 @@ async function deleteUser(req, res) {
 
 async function getUsers(req, res) {
   try {
-    const result = await service.getUsers(req.query.$top, req.query.$skip);
+    const result = await service.getUsers(
+      req.query.$top,
+      req.query.$skip,
+      req.query.$sortBy
+    );
     return res.json(result);
   } catch (error) /* istanbul ignore next */ {
     logger.error(`getUsers: Error while getUsers: ${error}`);

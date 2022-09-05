@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 
 const mongoHelper = require('../helpers/mongoHelper');
+const queryHelper = require('../helpers/queryHelper');
 
 const logger = require('../../logger')(__filename);
 const shortId = require('../helpers/shortId');
@@ -83,13 +84,25 @@ async function deleteUser(id) {
   }
   return true;
 }
-async function getUsers(top, skip) {
-  logger.info(`getUsers: getting users, top: ${top}, skip: ${skip}`);
-  const result = await User.find({}, [], {
+async function getUsers(top, skip, sortBy) {
+  const sortConfig = queryHelper.transformMogoOrderBy(sortBy);
+  logger.info(
+    `getUsers: getting users, top: ${top}, skip: ${skip}, sortBy: ${sortConfig}`
+  );
+
+  let query = {};
+  const result = await User.find(query, [], {
     limit: top, // number of top document return
     skip: skip // number of doc to skip
-  });
-  const totalDoc = (await User.count({}).lean()) - skip;
+  }).sort(sortConfig);
+
+  // move this to pagination
+  let totalDoc = await User.count({}).lean();
+  if (totalDoc - skip > 0) {
+    totalDoc = totalDoc - skip;
+  } else {
+    totalDoc = 0;
+  }
   return {
     count: totalDoc,
     values: result
