@@ -4,7 +4,7 @@
 
 ## About The Project
 
-Simple rest app powered by express and mySQL.
+A full fledge rest app powered by express.
 
 <!-- GETTING STARTED -->
 
@@ -26,8 +26,8 @@ This is an example of how you may give instructions on setting up your project l
 
 ### Prerequisites
 
-- You need a mySQL server up and running and it must have two databases `test` and `unittest` (of course you can change names, just see default.json file)  
-  You can run it as a [docker](https://hub.docker.com/_/mysql) or install it as a [standalone application](https://www.mysql.com/downloads/)
+- You need a mongoDB up and running. To do that, use docker  
+  You can run it as a [docker](https://hub.docker.com/_/mongo) or install it as a [standalone application](https://www.mongodb.com/try/download/community)
 
 - Node.js > v14 needed. You can get it [here](https://nodejs.org/en/download/)
 - Better install mocha on global level `npm install --global mocha`
@@ -50,8 +50,11 @@ Type `npm start`. Few lines will comes up and then go to ["http://localhost:3000
 
 ## Features
 
-1. Out of the box swaggerUI, swagger validation and test cases added
-2. Test cases available with 100 % coverage
+1. Out of the box swaggerUI
+2. Request and response validation
+3. Application [Metrics](#metrics)
+4. [Sorting](#sorting), projection and [pagination](#pagination) support
+5. Test cases available with 100 % coverage
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
@@ -64,9 +67,22 @@ Type `npm start`. Few lines will comes up and then go to ["http://localhost:3000
 - [ ] Add correlationId to every log
 - [ ] Add projection support
 - [ ] Add pagination and projection test cases
+- [ ] Add filters
+
+<!-- Sorting -->
+## Sorting
+
+Documents can be sorted using the parameter `$sortBy`. This parameter is a combination of the sorting order and sorting field. For more information, see generated [swagger docs](http://localhost:3000/user-service/docs/#/). To control what fields you can sort, go to `/api/helpers/queryHooks.js` and inside the `mapping` function modify the `sortFields` keys
+
+<p align="right">(<a href="#top">back to top</a>)</p>
+
+<!-- Pagination -->
+## Pagination
+ By Default applications exposes, pagination parameters `$top` and `$skip`
+
+ <p align="right">(<a href="#top">back to top</a>)</p>
 
 <!-- Application Metrics -->
-
 ## Metrics
 
 All the application metrics like CPU usages, event lag delay, TPM, and p95 are available.
