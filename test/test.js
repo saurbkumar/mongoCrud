@@ -21,6 +21,9 @@ describe('UserService', async function () {
       'Content-Type': 'application/json',
       Accept: 'application/json'
     });
+
+    // delete all resources
+    await request.delete(v1BasePath + '/users').expect(200);
   });
 
   after(async function () {
@@ -48,6 +51,12 @@ describe('UserService', async function () {
         country: 'USA'
       };
     }
+  }
+
+  function encodeGetParams(p) {
+    return Object.entries(p)
+      .map((kv) => kv.map(encodeURIComponent).join('='))
+      .join('&');
   }
 
   async function bulkCreateUsers(count) {
@@ -506,28 +515,76 @@ describe('UserService', async function () {
       res.body.values.should.have.length(0);
     });
 
-    it('SortUsers', async function () {
+    it.only('FailSortUsersBadParameter', async function () {
       // create bulk users
       const count = 20;
       await bulkCreateUsers(count);
-      let params = new URLSearchParams();
-      params.append('$sortBy', '-age');
+      let params = {
+        $sortBy: '(age', // only +/- is allowed
+        $top: count
+      };
+      await request
+        .get(v1BasePath + '/users?' + encodeGetParams(params))
+        .expect(400);
+
+      params = {
+        $sortBy: '-upfatedAt', // this field is not allowed
+        $top: count
+      };
+
+      await request
+        .get(v1BasePath + '/users?' + encodeGetParams(params))
+        .expect(400);
+    });
+
+    it.only('SortUsers', async function () {
+      // create bulk users
+      const count = 20;
+      await bulkCreateUsers(count);
+      let params = {
+        $sortBy: '+age',
+        $top: count
+      };
       let res = await request
-        .get(v1BasePath + '/users?' + params.toString())
+        .get(v1BasePath + '/users?' + encodeGetParams(params))
         .expect(200);
       res.body.should.have.property('count', count);
       res.body.should.have.property('values');
-      for (let index = 0; index++; index < res.body.values.length) {
+      for (let index = 0; index < count; index++) {
         res.body.values[index].age.should.be.eql(index);
       }
 
-      params = new URLSearchParams();
-      params.append('$sortBy', '+age');
+      params = {
+        $sortBy: '-age',
+        $top: count
+      };
+
       res = await request
-        .get(v1BasePath + '/users?' + params.toString())
+        .get(v1BasePath + '/users?' + encodeGetParams(params))
         .expect(200);
       res.body.should.have.property('count', count);
       res.body.should.have.property('values');
+
+      for (let index = count - 1; index >= count; index--) {
+        res.body.values[index].age.should.be.eql(index);
+      }
+
+      // use skip also
+      params = {
+        $sortBy: '+age',
+        $top: count,
+        $skip: 10
+      };
+
+      res = await request
+        .get(v1BasePath + '/users?' + encodeGetParams(params))
+        .expect(200);
+      res.body.should.have.property('count', count - 10);
+      res.body.should.have.property('values');
+
+      for (let index = 0; index < 10; index++) {
+        res.body.values[index].age.should.be.eql(index + 10);
+      }
     });
   });
 });

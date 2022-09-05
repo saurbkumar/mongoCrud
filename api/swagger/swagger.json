@@ -91,13 +91,12 @@
           {
             "name": "$sortBy",
             "in": "query",
-            "description": "This will sort documents by the database filed, if the filed is not availabe then that will return bad request. Default is no sort \n To sort document format is '+/-<dbField>'. '+' is for ascending and '-' is for descending order. For multiple fields use space",
+            "description": "This will sort documents by the database filed, default is no sort \n <br> Format is '+/-dbField'. '+' is for ascending and '-' is for descending order. <br> Ex '+age -name' will sort documents by age(ascending) and name(descending)",
             "required": false,
             "schema": {
               "type": "string",
-              "maximum": 10,
               "minLength": 1,
-              "maxLength": 12
+              "maxLength": 30
             }
           }
         ],
@@ -393,10 +392,12 @@
         "properties": {
           "count": {
             "type": "integer",
+            "description": "total number of documents available for the query",
             "example": 10
           },
           "value": {
             "type": "array",
+            "description": "paginated data",
             "items": {
               "allOf": [
                 {
