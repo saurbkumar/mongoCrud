@@ -4,21 +4,15 @@
 
 ## About The Project
 
-A full fledge rest app powered by express.
+A full fledge rest app powered by express. This app has following features out of the box:  
+
+1. Out of the box swaggerUI
+2. Request and response validation
+3. Application [Metrics](#metrics)
+4. [Sorting](#sorting), projection and [pagination](#pagination) support
+5. Test cases available with 100 % coverage
 
 <!-- GETTING STARTED -->
-
-### Built With
-
-This section list all major frameworks/libraries used in this project.
-
-- [Node](https://nodejs.org)
-- [Express](https://expressjs.com/)
-- [Sequelize](https://sequelize.org/)
-- [Swagger-ui-express](https://www.npmjs.com/package/swagger-ui-express)
-- [Mocha](https://mochajs.org/)
-
-<p align="right">(<a href="#top">back to top</a>)</p>
 
 ## Getting Started
 
@@ -45,16 +39,6 @@ This is an example of how you may give instructions on setting up your project l
 ## Usage
 
 Type `npm start`. Few lines will comes up and then go to ["http://localhost:3000/user-service/docs"](http://localhost:3000/user-service/docs/#/). You should see swagger doc
-
-<p align="right">(<a href="#top">back to top</a>)</p>
-
-## Features
-
-1. Out of the box swaggerUI
-2. Request and response validation
-3. Application [Metrics](#metrics)
-4. [Sorting](#sorting), projection and [pagination](#pagination) support
-5. Test cases available with 100 % coverage
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
