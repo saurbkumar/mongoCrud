@@ -72,7 +72,8 @@ async function getUsers(req, res) {
     const result = await service.getUsers(
       req.query.$top,
       req.query.$skip,
-      req.query.$sortBy
+      req.query.$sortBy,
+      req.query.$projection
     );
     return res.json(result);
   } catch (error) /* istanbul ignore next */ {

@@ -84,8 +84,8 @@ async function deleteUser(id) {
   }
   return true;
 }
-async function getUsers(top, skip, sortBy) {
-  const sortConfig = queryHelper.transformMogoOrderBy(sortBy);
+async function getUsers(top, skip, sortBy, projection) {
+  const sortConfig = queryHelper.transformMogoSortBy(sortBy);
   logger.info(
     `getUsers: getting users, top: ${top}, skip: ${skip}, sortBy: ${sortConfig}`
   );
@@ -94,7 +94,9 @@ async function getUsers(top, skip, sortBy) {
   const result = await User.find(query, [], {
     limit: top, // number of top document return
     skip: skip // number of doc to skip
-  }).sort(sortConfig);
+  })
+    .sort(sortConfig)
+    .select(projection);
 
   // move this to pagination
   let totalDoc = await User.count({}).lean();

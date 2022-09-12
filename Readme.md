@@ -49,8 +49,8 @@ Type `npm start`. Few lines will comes up and then go to ["http://localhost:3000
 - [X] Add basic test cases
 - [X] Add Metrics
 - [ ] Add correlationId to every log
-- [ ] Add projection support
-- [ ] Add pagination and projection test cases
+- [ ] Add projection support and test cases
+- [ ] Add pagination links and test cases
 - [ ] Add filters
 
 <!-- Sorting -->

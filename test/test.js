@@ -515,7 +515,7 @@ describe('UserService', async function () {
       res.body.values.should.have.length(0);
     });
 
-    it.only('FailSortUsersBadParameter', async function () {
+    it('FailSortUsersBadParameter', async function () {
       // create bulk users
       const count = 20;
       await bulkCreateUsers(count);

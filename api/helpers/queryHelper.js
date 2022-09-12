@@ -2,10 +2,10 @@ const queryHooks = require('../helpers/queryHooks');
 const allowedSortFields = new Set(queryHooks.mapping().sortFields);
 
 module.exports = {
-  transformMogoOrderBy: transformMogoOrderBy
+  transformMogoSortBy: transformMogoSortBy
 };
 
-function transformMogoOrderBy(sortBy) {
+function transformMogoSortBy(sortBy) {
   let sortConfig = {};
   if (!sortBy) {
     return sortConfig;

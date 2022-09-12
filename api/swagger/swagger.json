@@ -98,6 +98,16 @@
               "minLength": 1,
               "maxLength": 30
             }
+          },
+          {
+            "name": "$projection",
+            "in": "query",
+            "description": "Remove fields. Use '-' for removal. <br> EX: -name -age, will remove name and age ",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
           }
         ],
         "responses": {
