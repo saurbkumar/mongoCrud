@@ -23,8 +23,8 @@ async function deleteUser(id) {
   return await model.deleteUser(id);
 }
 
-async function getUsers(top, skip) {
-  return await model.getUsers(top, skip);
+async function getUsers(top, skip, sortBy, projection) {
+  return await model.getUsers(top, skip, sortBy, projection);
 }
 
 async function deleteUsers() {

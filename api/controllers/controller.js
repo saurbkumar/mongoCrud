@@ -69,10 +69,15 @@ async function deleteUser(req, res) {
 
 async function getUsers(req, res) {
   try {
-    const result = await service.getUsers(req.query.$top, req.query.$skip);
+    const result = await service.getUsers(
+      req.query.$top,
+      req.query.$skip,
+      req.query.$sortBy,
+      req.query.$projection
+    );
     return res.json(result);
   } catch (error) /* istanbul ignore next */ {
-    logger.error(`getUsers: Error while getUsers: ${error}`);
+    logger.error(`getUsers: Error while getting users: ${error}`);
     return res.status(error.statusCode || 500).send({
       message: error.message || 'Internal Server Error',
       statusCode: error.statusCode || 500
@@ -85,7 +90,7 @@ async function deleteUsers(req, res) {
     const result = await service.deleteUsers();
     return res.json(result);
   } catch (error) /* istanbul ignore next */ {
-    logger.error(`createUser: Error while getUsers: ${error}`);
+    logger.error(`createUser: Error while deleting users: ${error.toString()}`);
     return res.status(error.statusCode || 500).send({
       message: error.message || 'Internal Server Error',
       statusCode: error.statusCode || 500

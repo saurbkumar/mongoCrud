@@ -87,6 +87,27 @@
               "minimum": 0,
               "default": 0
             }
+          },
+          {
+            "name": "$sortBy",
+            "in": "query",
+            "description": "This will sort documents by the database filed, default is no sort \n <br> Format is '+/-dbField'. '+' is for ascending and '-' is for descending order. <br> Ex '+age -name' will sort documents by age(ascending) and name(descending)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 30
+            }
+          },
+          {
+            "name": "$projection",
+            "in": "query",
+            "description": "Remove fields. Use '-' for removal. <br> EX: -name -age, will remove name and age ",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
           }
         ],
         "responses": {
@@ -254,7 +275,9 @@
             "description": "Id of user",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 12
             }
           }
         ],
@@ -310,7 +333,9 @@
             "description": "Id of user",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 12
             }
           }
         ],
@@ -377,10 +402,12 @@
         "properties": {
           "count": {
             "type": "integer",
+            "description": "total number of documents available for the query",
             "example": 10
           },
           "value": {
             "type": "array",
+            "description": "paginated data",
             "items": {
               "allOf": [
                 {
