@@ -537,7 +537,7 @@ describe('UserService', async function () {
         .expect(400);
     });
 
-    it.only('SortUsers', async function () {
+    it('SortUsers', async function () {
       // create bulk users
       const count = 20;
       await bulkCreateUsers(count);
