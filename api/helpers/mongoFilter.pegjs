@@ -8,6 +8,16 @@
     allowedFieldsMap[element.name] = element.type
   });
   const allowedFields = object.keys(allowedFieldsMap);
+  const allowedDataTypes = object.values(allowedFieldsMap);
+  const validDataTypesArray = ['string', 'int', 'boolean'];
+  const validDataTypes = new Set(validDataTypesArray);
+  // check for the allowed types in queryHooks allowed type are string, int, boolean
+  allowedTypes.forEach(element => {
+    if(!(element in validDataTypes)){
+      new Error(`Invalid allowed types: ${element}, allowed types are: ${validDataTypesArray}. Stopping server, fix queryhooks file`);
+    }
+  });
+  
 
   function parseBooleanExpression(boolExpression) {
     // here format is 
@@ -27,6 +37,27 @@
       throw { "message": `${term.field} is not allowed to query. ${allowedFields} are allowed fileds`}
     }
     // transform fiels to target value
+    try {
+      const targetField = allowedFieldsMap[term.field];
+      switch (targetField) {
+        case 'string':
+          
+          break;
+        case 'string':
+        
+        break;
+        
+        case 'string':
+
+          break;
+        
+        default:
+
+          break;
+      }
+    } catch (error) {
+      
+    }
    }
     return boolExpression;
   }

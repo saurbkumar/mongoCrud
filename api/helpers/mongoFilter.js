@@ -1275,7 +1275,23 @@ function peg$parse(input, options) {
     // query hooks
     const queryHooks = require('./queryHooks.js');
     // check allowed fields and for every field do the mapping like convert string int in to proper int and so
-    const queryFields = queryHooks.mapping().queryFields
+    const queryMapping = queryHooks.mapping();
+    const allowedFieldsMap = {};
+    queryMapping.queryFiels.forEach(element => {
+      allowedFieldsMap[element.name] = element.type
+    });
+    const allowedFields = object.keys(allowedFieldsMap);
+    const allowedDataTypes = object.values(allowedFieldsMap);
+    const validDataTypesArray = ['string', 'int', 'boolean'];
+    const validDataTypes = new Set(validDataTypesArray);
+    // check for the allowed types in queryHooks allowed type are string, int, boolean
+    allowedTypes.forEach(element => {
+      if(!(element in validDataTypes)){
+        new Error(`Invalid allowed types: ${element}, allowed types are: ${validDataTypesArray}. Stopping server, fix queryhooks file`);
+      }
+    });
+    
+
     function parseBooleanExpression(boolExpression) {
       // here format is 
       /*
@@ -1289,22 +1305,45 @@ function peg$parse(input, options) {
         }]
       }    
       */
-      console.log("=====boolExpression====>", boolExpression)
+     for(let term of boolExpression.terms){
+      if(!(term.field in allowedFieldsMap)){
+        throw { "message": `${term.field} is not allowed to query. ${allowedFields} are allowed fileds`}
+      }
+      // transform fiels to target value
+      try {
+        const targetField = allowedFieldsMap[term.field];
+        switch (targetField) {
+          case 'string':
+            
+            break;
+          case 'string':
+          
+          break;
+          
+          case 'string':
+
+            break;
+          
+          default:
+
+            break;
+        }
+      } catch (error) {
+        
+      }
+     }
       return boolExpression;
     }
 
     function parseSubExpression(subExpression) {
-      console.log("=====parseSubExpression====>", subExpression)
       return subExpression;
     }
 
     function parseComparison(comparison) {
-      console.log("=====parseComparison====>", comparison)
       return comparison;
     }
 
     function parseInComparison(inComparison) {
-      console.log("=====parseInComparison====>", inComparison)
       return inComparison;
     }
 
