@@ -9,5 +9,9 @@ console.log(
   JSON.stringify(filter.parse(`(country in ( 'dd') and address = 'saueabh')`))
 );
 console.log(
-  JSON.stringify(filter.parse(`(country in ( 'dd') and (address = 'saueabh'))`))
+  JSON.stringify(
+    filter.parse(
+      `(country in ( 'dd') and (address = 'saueabh' or address in ('s','dds') and (  age in ( '23', '45'))))`
+    )
+  )
 );

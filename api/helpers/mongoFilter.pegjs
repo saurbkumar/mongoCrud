@@ -141,6 +141,22 @@
     }
     return transformedOperator;
   }
+
+  function transformOperatorExpression2Query(value, field, operator){
+    const transformedValue = transformValue(value, field);
+    const trandformedOperator = transformOperator(operator);
+    const query = {};
+    const op = {}
+    op[`${trandformedOperator}`] = transformedValue;
+    query[`${field}`] = op;
+    return query
+  }
+  function transformBooleanExpression2Query(operator, leftExpression, rightExpression){
+    const trandformedOperator = transformOperator(operator);
+    const query = {};
+    query[`${trandformedOperator}`] = [leftExpression, rightExpression];
+    return query;
+  }
 }
 // Top level rule is Expression
 Expression
@@ -156,24 +172,12 @@ SubExpression
 
 Comparison
   = field:Field _ operator:(allowedOp) _ value:Term {
-    const transformedValue = transformValue(value, field);
-    const trandformedOperator = transformOperator(operator);
-    const query = {};
-    const op = {}
-    op[`${trandformedOperator}`] = transformedValue;
-    query[`${field}`] = op;
-    return query
+      return transformOperatorExpression2Query(value, field, operator);
     }
     
 InComparison
   = field:Field _ operator:(inOp)  _ "(" _ value:inTerm _ ")" {
-    const transformedValue = transformValue(value, field);
-    const trandformedOperator = transformOperator(operator);
-    const query = {};
-    const op = {}
-    op[`${trandformedOperator}`] = transformedValue;
-    query[`${field}`] = op;
-    return query
+      return transformOperatorExpression2Query(value, field, operator);
     }
 
 BooleanExpression = AND / OR
@@ -181,10 +185,7 @@ BooleanExpression = AND / OR
 // AND to take precendence over OR
 AND
   = _ left:( OR / SubExpression / Comparison / InComparison ) _ andTerm _ right:( AND / OR / SubExpression / Comparison / InComparison) _ {
-    const trandformedOperator = transformOperator("AND");
-    const query = {};
-    query[`${trandformedOperator}`] = [left, right];
-    return query;
+    return transformBooleanExpression2Query("AND", left, right);
   }
 
 OR
@@ -192,7 +193,7 @@ OR
         const trandformedOperator = transformOperator("OR");
     const query = {};
     query[`${trandformedOperator}`] = [left, right];
-    return query;
+    return transformBooleanExpression2Query("OR", left, right);
   }
 
 Field

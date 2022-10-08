@@ -151,25 +151,16 @@ function peg$parse(input, options) {
       peg$c7 = peg$literalExpectation(")", false),
       peg$c8 = function(innards) { return innards; },
       peg$c9 = function(field, operator, value) {
-          const transformedValue = transformValue(value, field);
-          const trandformedOperator = transformOperator(operator);
-          const query = {};
-          const op = {}
-          op[`${trandformedOperator}`] = transformedValue;
-          query[`${field}`] = op;
-          return query
+            return transformOperatorExpression2Query(value, field, operator);
           },
       peg$c10 = function(left, right) {
-          const trandformedOperator = transformOperator("AND");
-          const query = {};
-          query[`${trandformedOperator}`] = [left, right];
-          return query;
+          return transformBooleanExpression2Query("AND", left, right);
         },
       peg$c11 = function(left, right) {
               const trandformedOperator = transformOperator("OR");
           const query = {};
           query[`${trandformedOperator}`] = [left, right];
-          return query;
+          return transformBooleanExpression2Query("OR", left, right);
         },
       peg$c12 = /^[0-9a-zA-Z]/,
       peg$c13 = peg$classExpectation([["0", "9"], ["a", "z"], ["A", "Z"]], false, false),
@@ -1630,6 +1621,22 @@ function peg$parse(input, options) {
           break;
       }
       return transformedOperator;
+    }
+
+    function transformOperatorExpression2Query(value, field, operator){
+      const transformedValue = transformValue(value, field);
+      const trandformedOperator = transformOperator(operator);
+      const query = {};
+      const op = {}
+      op[`${trandformedOperator}`] = transformedValue;
+      query[`${field}`] = op;
+      return query
+    }
+    function transformBooleanExpression2Query(operator, leftExpression, rightExpression){
+      const trandformedOperator = transformOperator(operator);
+      const query = {};
+      query[`${trandformedOperator}`] = [leftExpression, rightExpression];
+      return query;
     }
 
 
