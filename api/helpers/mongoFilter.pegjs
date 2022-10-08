@@ -1,109 +1,179 @@
 {
-  // query hooks
+    // query hooks
   const queryHooks = require('./queryHooks.js');
   // check allowed fields and for every field do the mapping like convert string int in to proper int and so
   const queryMapping = queryHooks.mapping();
   const allowedFieldsMap = {};
-  queryMapping.queryFiels.forEach(element => {
-    allowedFieldsMap[element.name] = element.type
+  queryMapping.queryFiels.forEach((element) => {
+    allowedFieldsMap[element.name] = element.type;
   });
-  const allowedFields = object.keys(allowedFieldsMap);
-  const allowedDataTypes = object.values(allowedFieldsMap);
-  const validDataTypesArray = ['string', 'int', 'boolean'];
+  const allowedFields = Object.keys(allowedFieldsMap);
+  const allowedDataTypes = Object.values(allowedFieldsMap);
+  const validDataTypesArray = ['string', 'int', 'boolean', 'decimal'];
   const validDataTypes = new Set(validDataTypesArray);
   // check for the allowed types in queryHooks allowed type are string, int, boolean
-  allowedTypes.forEach(element => {
-    if(!(element in validDataTypes)){
-      new Error(`Invalid allowed types: ${element}, allowed types are: ${validDataTypesArray}. Stopping server, fix queryhooks file`);
+  allowedDataTypes.forEach((element) => {
+    if (!(element in validDataTypes)) {
+      new Error(
+        `Invalid allowed types: ${element}, allowed types are: ${validDataTypesArray}. Stopping server, fix queryhooks file`
+      );
     }
   });
-  
 
-  function parseBooleanExpression(boolExpression) {
-    // here format is 
-    /*
-    {
-   "operator": "and",
-   "terms": [
-      {
-         "field": "aa",
-         "operator": "in",
-         "value": "'dd'"
-      }]
-    }    
-    */
-   for(let term of boolExpression.terms){
-    if(!(term.field in allowedFieldsMap)){
-      throw { "message": `${term.field} is not allowed to query. ${allowedFields} are allowed fileds`}
+  function transformInteger(value) {
+    const transformedValue = parseInt(value, 10);
+    if (isNaN(transformedValue)) {
+      throw {
+        message: `${value} is of type int`
+      };
     }
-    // transform fiels to target value
+    return transformedValue;
+  }
+
+  function transformDecimal(value) {
+    const transformedValue = parseFloat(value);
+    if (isNaN(transformedValue)) {
+      throw {
+        message: `${value} is of type int`
+      };
+    }
+    return transformedValue;
+  }
+
+  function checkAllowedField(field) {
+    if (!(field in allowedFieldsMap)) {
+      throw {
+        message: `${field} is not allowed to query. ${allowedFields} are allowed fileds`
+      };
+    }
+  }
+
+  function transformValue(value, targetFieldName) {
+    checkAllowedField(targetFieldName);
+    const targetType = allowedFieldsMap[targetFieldName];
     try {
-      const targetField = allowedFieldsMap[term.field];
-      switch (targetField) {
+      let transformField;
+      switch (targetType) {
         case 'string':
-          
+          // do nothing
+          transformField = value;
           break;
-        case 'string':
-        
-        break;
-        
-        case 'string':
+        case 'int':
+          if (Array.isArray(value)) {
+            transformField = value.map((element) => transformInteger(element));
+          } else {
+            transformField = transformInteger(value);
+          }
+          break;
+        case 'decimal':
+          if (Array.isArray(value)) {
+            transformField = value.map((element) => transformDecimal(element));
+          } else {
+            transformField = transformDecimal(value);
+          }
+          break;
 
+        case 'boolean':
+          if (Array.isArray(value)) {
+            transformField = value.map((element) => {
+              // check every element is true and false
+              if (element !== 'true' && element !== 'false') {
+                throw {
+                  message: `${value} is of type boolean and it is neither true nor false`
+                };
+              }
+              return element === 'true';
+            });
+          } else {
+            transformField = value === 'true';
+          }
           break;
-        
+
         default:
-
-          break;
+          throw {
+            message: `${value} is of type unkown, it can be of the following: ${validDataTypesArray}`
+          };
       }
+      return transformField;
     } catch (error) {
-      
+      throw {
+        message: error.message || error
+      };
     }
-   }
-    return boolExpression;
   }
+  // this is database specific functions, move these out of parser later
+  function transformOperator(operator) {
+    let transformedOperator;
+    switch (operator) {
+      case 'OR':
+        transformedOperator = '$or';
+        break;
+      case 'AND':
+        transformedOperator = '$and';
+        break;
+      case '=':
+        transformedOperator = '$eq';
+        break;
+      case '!=':
+        transformedOperator = '$ne';
+        break;
+      case '>':
+        transformedOperator = '$gt';
+        break;
+      case '>=':
+        transformedOperator = '$gte';
+        break;
+      case '<':
+        transformedOperator = '$lt';
+        break;
+      case '<=':
+        transformedOperator = '$lte';
+        break;
+      case 'IN':
+        transformedOperator = '$in';
+        break;
+      case 'NOT IN':
+        transformedOperator = '$nin';
+        break;
 
-  function parseSubExpression(subExpression) {
-    return subExpression;
+      default:
+        break;
+    }
+    return transformedOperator;
   }
-
-  function parseComparison(comparison) {
-    return comparison;
-  }
-
-  function parseInComparison(inComparison) {
-    return inComparison;
-  }
-
 }
-
-
 // Top level rule is Expression
 Expression
-  = boolExpression:BooleanExpression { return parseBooleanExpression(boolExpression); }
-  / subExpression:SubExpression { return parseSubExpression(subExpression); }
-  / comparison:Comparison { return parseComparison(comparison); }
-  / inComparison:InComparison { return parseInComparison(inComparison); }
+  = boolExpression:BooleanExpression { return boolExpression; }
+  / comparison:Comparison { return comparison; }
+  / inComparison:InComparison { return inComparison; }
+  / subExpression:SubExpression { return subExpression; }
+
 
 // A sub expression is just an expression wrapped in parentheses
 SubExpression
   = _ "(" _ innards: Expression _ ")" _ { return innards; }
 
 Comparison
-  = field:Term _ operator:(allowedOp) _ value:Term {
-      return {
-        field: field,
-        operator: operator,
-        value: value,
-      };
+  = field:Field _ operator:(allowedOp) _ value:Term {
+    const transformedValue = transformValue(value, field);
+    const trandformedOperator = transformOperator(operator);
+    const query = {};
+    const op = {}
+    op[`${trandformedOperator}`] = transformedValue;
+    query[`${field}`] = op;
+    return query
     }
     
 InComparison
-  = field:Term _ operator:(in)  _ "(" _ values:inTerm _ ")" {
-      return {
-        field: field,
-        operator: operator,
-        value: values,
-      };
+  = field:Field _ operator:(inOp)  _ "(" _ value:inTerm _ ")" {
+    const transformedValue = transformValue(value, field);
+    const trandformedOperator = transformOperator(operator);
+    const query = {};
+    const op = {}
+    op[`${trandformedOperator}`] = transformedValue;
+    query[`${field}`] = op;
+    return query
     }
 
 BooleanExpression = AND / OR
@@ -111,31 +181,36 @@ BooleanExpression = AND / OR
 // AND to take precendence over OR
 AND
   = _ left:( OR / SubExpression / Comparison / InComparison ) _ andTerm _ right:( AND / OR / SubExpression / Comparison / InComparison) _ {
-    return {
-      operator: 'and',
-      terms: [ left, right ]
-    }
+    const trandformedOperator = transformOperator("AND");
+    const query = {};
+    query[`${trandformedOperator}`] = [left, right];
+    return query;
   }
 
 OR
   = _ left:( SubExpression / Comparison /InComparison ) _ orTerm _ right:( OR / SubExpression / Comparison / InComparison ) _ {
-    return {
-      operator: 'or',
-      terms: [ left, right ]
-    }
+        const trandformedOperator = transformOperator("OR");
+    const query = {};
+    query[`${trandformedOperator}`] = [left, right];
+    return query;
   }
 
-Term
-  = "'"? value:$( [0-9a-zA-Z]+ ) "'"? {
+Field
+  = value:$([0-9a-zA-Z]+) {
       return value;
+    }
+    
+Term
+  = value:$("'"[0-9a-zA-Z]+ "'") {
+      return value.replaceAll("'","").trim();
     }
     
 inTerm
-  =  value:$(("'"[0-9a-zA-Z]+"'") (",'"[0-9a-zA-Z]+"'")*)  {
-      return value;
+  =  value:$(_ ("'"[0-9a-zA-Z. ]+"'") _ ("," _ "'" _ [0-9a-zA-Z. ]+"'")* _)  {
+       return value.split(",").map(element => element.replaceAll("'","").trim());
     }
 
-    
+inOp = in / not_in
 
 allowedOp = gtEql 
         / gt 
@@ -144,23 +219,35 @@ allowedOp = gtEql
         / ntEql 
         / eql
 
-orTerm = "or" / "OR"
+orTerm = "or" { return "OR"; }
+        / "OR" 
 
-andTerm = "and" / "AND"
+andTerm = "and" { return "AND"; }
+        / "AND" 
 
-eql = "=" / "eql"
+eql = "=" 
+        / "eql" { return "="; }
 
-gt = ">" / "gt"
+gt = ">" 
+        / "gt" { return ">" }
 
-less = "<" / "less"
+less = "<" 
+        / "less" { return "<"; }
 
-gtEql = ">=" / "gtEql"
+gtEql = ">=" 
+        / "gtEql" { return ">="; }
 
-lessEql = "<=" / "lessEql"
+lessEql = "<=" 
+        / "lessEql" { return "<="; }
 
-ntEql = "!=" / "ntEql"
+ntEql = "!=" 
+        / "ntEql" { return "!="; }
 
-in = "in" / "IN"
+in = "in" { return "IN"; }
+      / "IN"
+
+not_in = "not in" { return "NOT IN"; }
+    / "NOT IN" 
 
 _ "whitespace"
   = [ \t\n\r]*

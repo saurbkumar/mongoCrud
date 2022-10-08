@@ -586,5 +586,22 @@ describe('UserService', async function () {
         res.body.values[index].age.should.be.eql(index + 10);
       }
     });
+
+    //
+    /**
+     * test cases needed for the parser
+     *
+     */
+    it('check', async function () {
+      // aa in ('dd') and aa = 'sd' and ttt in (          '1  2'             ,'32'             )
+      // aa in ('dd') and aa = 'sd' and ttt in ('1  2','32')
+      // aa in ('dd') and aa = 'sd' and ttt in ('1 2' ,'32')
+      // aa in ('dd') and aa = 'sd' and ttt in ('1 2', '32')
+      // aa in ('dd') and aa = 'sd' and ttt in ('1 2', '32' )
+      // aa in ('dd') and aa = 'sd' and ttt in ('1 2', '32' )
+      // aa = 'sd'
+      // aa in ('dd')
+      // (aa in ('dd') and aa = 'sd')
+    });
   });
 });
