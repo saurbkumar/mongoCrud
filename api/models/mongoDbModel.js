@@ -9,10 +9,10 @@ const shortId = require('../helpers/shortId');
 const userSchema = new mongoose.Schema(
   {
     _id: String,
-    name: String,
-    age: Number,
-    address: String,
-    country: String
+    name: { type: String, index: true },
+    age: { type: Number, index: true },
+    address: { type: String, index: true },
+    country: { type: String, index: true }
   },
   {
     minimize: false,
@@ -84,13 +84,14 @@ async function deleteUser(id) {
   }
   return true;
 }
-async function getUsers(top, skip, sortBy, projection) {
+async function getUsers(top, skip, filter, sortBy, projection) {
   const sortConfig = queryHelper.transformMogoSortBy(sortBy);
+  const filterConfig = queryHelper.transformMongoQuery(filter);
   logger.info(
-    `getUsers: getting users, top: ${top}, skip: ${skip}, sortBy: ${sortConfig}`
+    `getUsers: getting users, top: ${top}, skip: ${skip}, filter: ${filter}, sortBy: ${sortConfig}, projection: ${projection}`
   );
 
-  let query = {};
+  let query = filterConfig;
   const result = await User.find(query, [], {
     limit: top, // number of top document return
     skip: skip // number of doc to skip

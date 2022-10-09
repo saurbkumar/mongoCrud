@@ -1,6 +1,6 @@
 const memoryCacheModel = require('../models/memoryCacheModel');
 const dbModel = require('../models/mongoDbModel');
-
+// TODO: Remove caches - just give a placeholder for the distributed cache here
 module.exports = {
   getUser: getUser,
   createUser: createUser,
@@ -37,9 +37,8 @@ async function deleteUser(id) {
   memoryCacheModel.deleteObject(id);
   return dbModel.deleteUser(id);
 }
-async function getUsers(top, skip, sortBy, projection) {
-  // TODO: Build cache here
-  let result = dbModel.getUsers(top, skip, sortBy, projection);
+async function getUsers(top, skip, filter, sortBy, projection) {
+  let result = dbModel.getUsers(top, skip, filter, sortBy, projection);
   return result;
 }
 

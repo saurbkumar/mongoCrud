@@ -1,8 +1,11 @@
 const queryHooks = require('../helpers/queryHooks');
+const filter = require('./mongoFilter');
+
 const allowedSortFields = new Set(queryHooks.mapping().sortFields);
 
 module.exports = {
-  transformMogoSortBy: transformMogoSortBy
+  transformMogoSortBy: transformMogoSortBy,
+  transformMongoQuery: transformMongoQuery
 };
 
 function transformMogoSortBy(sortBy) {
@@ -31,4 +34,12 @@ function transformMogoSortBy(sortBy) {
     sortConfig[sortfield] = sortDirection === '+' ? 'asc' : 'desc';
   });
   return sortConfig;
+}
+
+function transformMongoQuery(query) {
+  let transformedQuery = {};
+  if (query) {
+    transformedQuery = filter.parse(query);
+  }
+  return transformedQuery;
 }

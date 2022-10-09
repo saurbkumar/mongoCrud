@@ -227,27 +227,28 @@ andTerm = "and" { return "AND"; }
         / "AND" 
 
 eql = "=" 
-        / "eql" { return "="; }
+        / "eq" { return "="; }
 
 gt = ">" 
         / "gt" { return ">" }
 
 less = "<" 
-        / "less" { return "<"; }
+        / "lt" { return "<"; }
 
 gtEql = ">=" 
-        / "gtEql" { return ">="; }
+        / "gte" { return ">="; }
 
 lessEql = "<=" 
-        / "lessEql" { return "<="; }
+        / "lte" { return "<="; }
 
 ntEql = "!=" 
-        / "ntEql" { return "!="; }
+        / "ne" { return "!="; }
 
 in = "in" { return "IN"; }
       / "IN"
 
-not_in = "not in" { return "NOT IN"; }
+not_in = "nin" { return "NOT IN"; }
+    / "not in" { return "NOT IN"; }
     / "NOT IN" 
 
 _ "whitespace"

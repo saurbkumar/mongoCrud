@@ -10,6 +10,8 @@ logger('unittest.log').switchToFile();
 require('should');
 const v1BasePath = '/v1/user-service';
 
+const queryHelper = require('../api/helpers/queryHelper');
+
 describe('UserService', async function () {
   let request;
   let port = Math.floor(Math.random() * 10000);
@@ -587,21 +589,73 @@ describe('UserService', async function () {
       }
     });
 
-    //
-    /**
-     * test cases needed for the parser
-     *
-     */
-    it('check', async function () {
-      // aa in ('dd') and aa = 'sd' and ttt in (          '1  2'             ,'32'             )
-      // aa in ('dd') and aa = 'sd' and ttt in ('1  2','32')
-      // aa in ('dd') and aa = 'sd' and ttt in ('1 2' ,'32')
-      // aa in ('dd') and aa = 'sd' and ttt in ('1 2', '32')
-      // aa in ('dd') and aa = 'sd' and ttt in ('1 2', '32' )
-      // aa in ('dd') and aa = 'sd' and ttt in ('1 2', '32' )
-      // aa = 'sd'
-      // aa in ('dd')
-      // (aa in ('dd') and aa = 'sd')
+    describe('QueryParser', async function () {
+      function testParserLanguage(expression) {
+        let parsedExpression;
+        try {
+          parsedExpression = queryHelper.transformMongoQuery(expression);
+        } catch (error) {
+          parsedExpression = '';
+        }
+        return parsedExpression;
+      }
+
+      it('AliasTest', async function () {
+        // 'name','age','address','country',
+        const eqlQuery1 = testParserLanguage(`name eq 'dd'`);
+        const eqlQuery2 = testParserLanguage(`name = 'dd'`);
+        eqlQuery1.should.eql(eqlQuery2);
+
+        const greaterQuery1 = testParserLanguage(`name > 'dd'`);
+        const greaterQuery2 = testParserLanguage(`name gt 'dd'`);
+        greaterQuery1.should.eql(greaterQuery2);
+
+        const greaterEqlQuery1 = testParserLanguage(`name >= 'dd'`);
+        const greaterEqlQuery2 = testParserLanguage(`name gte 'dd'`);
+        greaterEqlQuery1.should.eql(greaterEqlQuery2);
+
+        const lessThenQuery1 = testParserLanguage(`name < 'dd'`);
+        const lessThenQuery2 = testParserLanguage(`name lt 'dd'`);
+        lessThenQuery1.should.eql(lessThenQuery2);
+
+        const lessThenEqlQuery1 = testParserLanguage(`name <= 'dd'`);
+        const lessThenEqlQuery2 = testParserLanguage(`name lte 'dd'`);
+        lessThenEqlQuery1.should.eql(lessThenEqlQuery2);
+
+        const notEqlQuery1 = testParserLanguage(`name != 'dd'`);
+        const notEqlQuery2 = testParserLanguage(`name ne 'dd'`);
+        notEqlQuery1.should.eql(notEqlQuery2);
+
+        const inQuery1 = testParserLanguage(`name in ('dd')`);
+        const inQuery2 = testParserLanguage(`name IN ('dd')`);
+        inQuery1.should.eql(inQuery2);
+
+        const notInQuery1 = testParserLanguage(`name not in ('dd')`);
+        const notInQuery2 = testParserLanguage(`name NOT IN ('dd')`);
+        const notInQuery3 = testParserLanguage(`name nin ('dd')`);
+        notInQuery1.should.eql(notInQuery2);
+        notInQuery3.should.eql(notInQuery2);
+      });
+
+      it('QueryLanguageErrorTest', async function () {
+        testParserLanguage(`name = dd'`).should.eql(''); // not a proper syntax, '' needed
+        testParserLanguage(`name & 'dd'`).should.eql(''); // not a proper operator
+        testParserLanguage(`name IN 'dd'`).should.eql(''); // after in, () needed
+        testParserLanguage(`name = '*'`).should.eql(''); // * is not allowed
+        testParserLanguage(`name = 'd' OR `).should.eql(''); // after boolean clause another expression needed
+        testParserLanguage(`randomField not in ('dd')`).should.eql(''); // after boolean clause another expression needed
+        testParserLanguage(`age not in ('dd')`).should.eql(''); // age is of type integer ( query hooks mapping )
+        testParserLanguage(`age not in ('2'`).should.eql(''); // ")" is missing
+      });
+
+      it('QueryLanguageErrorTest', async function () {
+        const query = testParserLanguage(
+          `name = 'dd' and   age = '10' and  (address not in  ('add1',      'add2' ) or country =  'cty'   )`
+        );
+        JSON.stringify(query).should.eql(
+          `{"$and":[{"name":{"$eq":"dd"}},{"$and":[{"age":{"$eq":10}},{"$or":[{"address":{"$nin":["add1","add2"]}},{"country":{"$eq":"cty"}}]}]}]}`
+        );
+      });
     });
   });
 });
