@@ -460,11 +460,20 @@ describe('UserService', async function () {
         res.body.should.have.property('count', count);
         res.body.should.have.property('values');
         res.body.values.length.should.be.eql(count);
+        // delete all users
+        res = await request.delete(v1BasePath + '/users').expect(200);
+        res.body.should.have.property('count', count);
+
+        // get all user and check the count
+        res = await request.get(v1BasePath + '/users').expect(200);
+        res.body.should.have.property('count', 0);
+        res.body.should.have.property('values');
+        res.body.values.length.should.be.eql(0);
       });
     });
   });
 
-  describe('PaginationAndProjection', async function () {
+  describe('Pagination', async function () {
     it('FailPaginateBadPaginationData', async function () {
       // create bulk users
       const count = 20;
@@ -577,7 +586,6 @@ describe('UserService', async function () {
         $top: count,
         $skip: 10
       };
-
       res = await request
         .get(v1BasePath + '/users?' + encodeGetParams(params))
         .expect(200);
@@ -588,74 +596,201 @@ describe('UserService', async function () {
         res.body.values[index].age.should.be.eql(index + 10);
       }
     });
+  });
 
-    describe('QueryParser', async function () {
-      function testParserLanguage(expression) {
-        let parsedExpression;
-        try {
-          parsedExpression = queryHelper.transformMongoQuery(expression);
-        } catch (error) {
-          parsedExpression = '';
-        }
-        return parsedExpression;
+  describe('ProjectionTest', async function () {
+    it('ProjectionTest', async function () {
+      // create a user
+    });
+  });
+
+  describe('FilterTest', async function () {
+    function checkData(res, field, targetValues) {
+      // gather all vales
+      const data = new Set(res.body.values.map((user) => user[`${field}`]));
+      // check all values
+      for (let val of targetValues) {
+        data.has(val).should.eql(true);
       }
+      data.size.should.eql(targetValues.length);
+    }
+    it('FilterGetTestFailBadQuery', async function () {
+      // create bulk users
+      const count = 20;
+      await bulkCreateUsers(count);
 
-      it('AliasTest', async function () {
-        // 'name','age','address','country',
-        const eqlQuery1 = testParserLanguage(`name eq 'dd'`);
-        const eqlQuery2 = testParserLanguage(`name = 'dd'`);
-        eqlQuery1.should.eql(eqlQuery2);
+      // query users
+      let params = {
+        $filter: `createdAt >= '2022-10-08T23:06:09.049Z'`,
+        $top: count // created at is not a allowed field
+      };
+      await request
+        .get(v1BasePath + '/users?' + encodeGetParams(params))
+        .expect(400);
 
-        const greaterQuery1 = testParserLanguage(`name > 'dd'`);
-        const greaterQuery2 = testParserLanguage(`name gt 'dd'`);
-        greaterQuery1.should.eql(greaterQuery2);
+      params = {
+        $filter: ``, // it should have some value, blank is not allowed
+        $top: count
+      };
+      await request
+        .get(v1BasePath + '/users?' + encodeGetParams(params))
+        .expect(400);
+    });
 
-        const greaterEqlQuery1 = testParserLanguage(`name >= 'dd'`);
-        const greaterEqlQuery2 = testParserLanguage(`name gte 'dd'`);
-        greaterEqlQuery1.should.eql(greaterEqlQuery2);
+    it('FilterGetTest', async function () {
+      // create bulk users
+      const count = 20;
+      await bulkCreateUsers(count);
 
-        const lessThenQuery1 = testParserLanguage(`name < 'dd'`);
-        const lessThenQuery2 = testParserLanguage(`name lt 'dd'`);
-        lessThenQuery1.should.eql(lessThenQuery2);
+      // query users
+      let params = {
+        $filter: `age >= '10'`,
+        $top: count // get all users for the given query
+      };
 
-        const lessThenEqlQuery1 = testParserLanguage(`name <= 'dd'`);
-        const lessThenEqlQuery2 = testParserLanguage(`name lte 'dd'`);
-        lessThenEqlQuery1.should.eql(lessThenEqlQuery2);
+      let res = await request
+        .get(v1BasePath + '/users?' + encodeGetParams(params))
+        .expect(200);
+      res.body.should.have.property('count', 10); // only 10 record should match the above criteria
+      res.body.should.have.property('values');
+      checkData(res, 'age', [10, 11, 12, 13, 14, 15, 16, 17, 18, 19]);
 
-        const notEqlQuery1 = testParserLanguage(`name != 'dd'`);
-        const notEqlQuery2 = testParserLanguage(`name ne 'dd'`);
-        notEqlQuery1.should.eql(notEqlQuery2);
+      // check age and other parameter
+      params = {
+        $filter: `age >= '2' and (address IN ('Address11', 'Address12', 'Address14') or name IN ('name17', 'name16'))`,
+        $top: count // get all users for the given query
+      };
+      res = await request
+        .get(v1BasePath + '/users?' + encodeGetParams(params))
+        .expect(200);
+      res.body.should.have.property('count', 5);
+      res.body.should.have.property('values');
+      checkData(res, 'age', [3, 4, 11, 12, 14]);
+    });
 
-        const inQuery1 = testParserLanguage(`name in ('dd')`);
-        const inQuery2 = testParserLanguage(`name IN ('dd')`);
-        inQuery1.should.eql(inQuery2);
+    it('FilterDeleteTestFailBadQuery', async function () {
+      // create bulk users
+      const count = 20;
+      await bulkCreateUsers(count);
 
-        const notInQuery1 = testParserLanguage(`name not in ('dd')`);
-        const notInQuery2 = testParserLanguage(`name NOT IN ('dd')`);
-        const notInQuery3 = testParserLanguage(`name nin ('dd')`);
-        notInQuery1.should.eql(notInQuery2);
-        notInQuery3.should.eql(notInQuery2);
-      });
+      // delete users
+      let params = {
+        $filter: `` // fail as filter can not be blank
+      };
+      await request
+        .delete(v1BasePath + '/users?' + encodeGetParams(params))
+        .expect(400);
+    });
 
-      it('QueryLanguageErrorTest', async function () {
-        testParserLanguage(`name = dd'`).should.eql(''); // not a proper syntax, '' needed
-        testParserLanguage(`name & 'dd'`).should.eql(''); // not a proper operator
-        testParserLanguage(`name IN 'dd'`).should.eql(''); // after in, () needed
-        testParserLanguage(`name = '*'`).should.eql(''); // * is not allowed
-        testParserLanguage(`name = 'd' OR `).should.eql(''); // after boolean clause another expression needed
-        testParserLanguage(`randomField not in ('dd')`).should.eql(''); // after boolean clause another expression needed
-        testParserLanguage(`age not in ('dd')`).should.eql(''); // age is of type integer ( query hooks mapping )
-        testParserLanguage(`age not in ('2'`).should.eql(''); // ")" is missing
-      });
+    it('FilterDeleteTest', async function () {
+      // create bulk users
+      const count = 20;
+      await bulkCreateUsers(count);
 
-      it('QueryLanguageErrorTest', async function () {
-        const query = testParserLanguage(
-          `name = 'dd' and   age = '10' and  (address not in  ('add1',      'add2' ) or country =  'cty'   )`
-        );
-        JSON.stringify(query).should.eql(
-          `{"$and":[{"name":{"$eq":"dd"}},{"$and":[{"age":{"$eq":10}},{"$or":[{"address":{"$nin":["add1","add2"]}},{"country":{"$eq":"cty"}}]}]}]}`
-        );
-      });
+      // delete users
+      let params = {
+        $filter: `age >= '2' and (address IN ('Address11', 'Address12', 'Address14') or name IN ('name17', 'name16'))`
+      };
+      let res = await request
+        .delete(v1BasePath + '/users?' + encodeGetParams(params))
+        .expect(200);
+      res.body.should.have.property('count', 5);
+
+      // get the users using the above same query and it should return 0
+      params = {
+        $filter: `age >= '2' and (address IN ('Address11', 'Address12', 'Address14') or name IN ('name17', 'name16'))`,
+        $top: count // get all users for the given query
+      };
+      res = await request
+        .get(v1BasePath + '/users?' + encodeGetParams(params))
+        .expect(200);
+      res.body.should.have.property('count', 0);
+      res.body.should.have.property('values');
+      res.body.values.length.should.eql(0);
+      // other users and check if the remaining users exist
+      params = {
+        $top: count // get all users for the given query
+      };
+      res = await request
+        .get(v1BasePath + '/users?' + encodeGetParams(params))
+        .expect(200);
+      res.body.should.have.property('count', 15);
+      res.body.should.have.property('values');
+      res.body.values.length.should.eql(15);
+      checkData(
+        res,
+        'age',
+        [0, 1, 2, 5, 6, 7, 8, 9, 10, 13, 15, 16, 17, 18, 19]
+      );
+    });
+  });
+
+  describe('QueryParser', async function () {
+    function testParserLanguage(expression) {
+      let parsedExpression;
+      try {
+        parsedExpression = queryHelper.transformMongoQuery(expression);
+      } catch (error) {
+        parsedExpression = '';
+      }
+      return parsedExpression;
+    }
+
+    it('AliasTest', async function () {
+      // 'name','age','address','country',
+      const eqlQuery1 = testParserLanguage(`name eq 'dd'`);
+      const eqlQuery2 = testParserLanguage(`name = 'dd'`);
+      eqlQuery1.should.eql(eqlQuery2);
+
+      const greaterQuery1 = testParserLanguage(`name > 'dd'`);
+      const greaterQuery2 = testParserLanguage(`name gt 'dd'`);
+      greaterQuery1.should.eql(greaterQuery2);
+
+      const greaterEqlQuery1 = testParserLanguage(`name >= 'dd'`);
+      const greaterEqlQuery2 = testParserLanguage(`name gte 'dd'`);
+      greaterEqlQuery1.should.eql(greaterEqlQuery2);
+
+      const lessThenQuery1 = testParserLanguage(`name < 'dd'`);
+      const lessThenQuery2 = testParserLanguage(`name lt 'dd'`);
+      lessThenQuery1.should.eql(lessThenQuery2);
+
+      const lessThenEqlQuery1 = testParserLanguage(`name <= 'dd'`);
+      const lessThenEqlQuery2 = testParserLanguage(`name lte 'dd'`);
+      lessThenEqlQuery1.should.eql(lessThenEqlQuery2);
+
+      const notEqlQuery1 = testParserLanguage(`name != 'dd'`);
+      const notEqlQuery2 = testParserLanguage(`name ne 'dd'`);
+      notEqlQuery1.should.eql(notEqlQuery2);
+
+      const inQuery1 = testParserLanguage(`name in ('dd')`);
+      const inQuery2 = testParserLanguage(`name IN ('dd')`);
+      inQuery1.should.eql(inQuery2);
+
+      const notInQuery1 = testParserLanguage(`name not in ('dd')`);
+      const notInQuery2 = testParserLanguage(`name NOT IN ('dd')`);
+      const notInQuery3 = testParserLanguage(`name nin ('dd')`);
+      notInQuery1.should.eql(notInQuery2);
+      notInQuery3.should.eql(notInQuery2);
+    });
+
+    it('QueryLanguageErrorTest', async function () {
+      testParserLanguage(`name = dd'`).should.eql(''); // not a proper syntax, '' needed
+      testParserLanguage(`name & 'dd'`).should.eql(''); // not a proper operator
+      testParserLanguage(`name IN 'dd'`).should.eql(''); // after in, () needed
+      testParserLanguage(`name = '*'`).should.eql(''); // * is not allowed
+      testParserLanguage(`name = 'd' OR `).should.eql(''); // after boolean clause another expression needed
+      testParserLanguage(`randomField not in ('dd')`).should.eql(''); // after boolean clause another expression needed
+      testParserLanguage(`age not in ('dd')`).should.eql(''); // age is of type integer ( query hooks mapping )
+      testParserLanguage(`age not in ('2'`).should.eql(''); // ")" is missing
+    });
+
+    it('QueryLanguageTest', async function () {
+      const query = testParserLanguage(
+        `name = 'dd' and   age = '10' and  (address not in  ('add1',      'add2' ) or country =  'cty'   )`
+      );
+      JSON.stringify(query).should.eql(
+        `{"$and":[{"name":{"$eq":"dd"}},{"$and":[{"age":{"$eq":10}},{"$or":[{"address":{"$nin":["add1","add2"]}},{"country":{"$eq":"cty"}}]}]}]}`
+      );
     });
   });
 });

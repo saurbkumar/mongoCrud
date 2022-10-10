@@ -42,7 +42,7 @@ async function getUsers(top, skip, filter, sortBy, projection) {
   return result;
 }
 
-async function deleteUsers() {
+async function deleteUsers(filter) {
   memoryCacheModel.clear();
-  return dbModel.deleteUsers();
+  return dbModel.deleteUsers(filter);
 }

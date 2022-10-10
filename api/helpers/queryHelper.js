@@ -1,4 +1,6 @@
 const queryHooks = require('../helpers/queryHooks');
+const logger = require('../../logger')(__filename);
+
 const filter = require('./mongoFilter');
 
 const allowedSortFields = new Set(queryHooks.mapping().sortFields);
@@ -39,7 +41,15 @@ function transformMogoSortBy(sortBy) {
 function transformMongoQuery(query) {
   let transformedQuery = {};
   if (query) {
-    transformedQuery = filter.parse(query);
+    try {
+      transformedQuery = filter.parse(query);
+    } catch (error) {
+      const messaage = error.message || 'bad query';
+      logger.error(
+        `transformMongoQuery: error while parsing query, error: ${messaage}`
+      );
+      throw { messaage: messaage, statusCode: 400 };
+    }
   }
   return transformedQuery;
 }

@@ -88,7 +88,7 @@ async function getUsers(req, res) {
 
 async function deleteUsers(req, res) {
   try {
-    const result = await service.deleteUsers();
+    const result = await service.deleteUsers(req.query.$filter);
     return res.json(result);
   } catch (error) /* istanbul ignore next */ {
     logger.error(`createUser: Error while deleting users: ${error.toString()}`);

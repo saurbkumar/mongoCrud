@@ -77,7 +77,7 @@ async function updateUser(id, user) {
 
 async function deleteUser(id) {
   logger.info(`deleteUser: removing user for Id: ${id}`);
-  let result = await User.deleteOne({ _id: id });
+  let result = await User.deleteOne({ _id: id }); // here not using write before read
   if (result.deletedCount != 1) {
     logger.error(`deleteUser: userId ${id} not found`);
     return false;
@@ -92,6 +92,7 @@ async function getUsers(top, skip, filter, sortBy, projection) {
   );
 
   let query = filterConfig;
+  logger.debug(`getUsers: query: ${JSON.stringify(query)}`);
   const result = await User.find(query, [], {
     limit: top, // number of top document return
     skip: skip // number of doc to skip
@@ -100,7 +101,7 @@ async function getUsers(top, skip, filter, sortBy, projection) {
     .select(projection);
 
   // move this to pagination
-  let totalDoc = await User.count({}).lean();
+  let totalDoc = await User.countDocuments(query).lean(); // find better way to do this, figure out in single query
   if (totalDoc - skip > 0) {
     totalDoc = totalDoc - skip;
   } else {
@@ -112,10 +113,15 @@ async function getUsers(top, skip, filter, sortBy, projection) {
   };
 }
 
-async function deleteUsers() {
-  logger.info(`deleteUsers: removing all users`);
-  let result = await User.deleteMany({});
-  return { count: result };
+async function deleteUsers(filter) {
+  const filterConfig = queryHelper.transformMongoQuery(filter);
+  logger.info(
+    `deleteUsers: removing all users, for query: ${JSON.stringify(
+      filterConfig
+    )}`
+  );
+  let result = await User.deleteMany(filterConfig);
+  return { count: result.deletedCount };
 }
 
 function copy(dbObj) {

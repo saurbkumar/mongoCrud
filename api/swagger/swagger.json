@@ -200,7 +200,7 @@
           {
             "name": "$filter",
             "in": "query",
-            "description": "Delere certain records using sql like where clause. For all the available clauses see readme. \n For the allowed filter fields check your queryHooks file",
+            "description": "Delete records using sql like where clause. For all the available clause see readme. \n For the allowed filter fields check your queryHooks file",
             "required": false,
             "schema": {
               "type": "string",
