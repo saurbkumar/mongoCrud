@@ -1,15 +1,19 @@
 {
-    // query hooks
+  // query hooks
   const queryHooks = require('./queryHooks.js');
   // check allowed fields and for every field do the mapping like convert string int in to proper int and so
   const queryMapping = queryHooks.mapping();
   const allowedFieldsMap = {};
+  const virtuals = {};
   queryMapping.queryFiels.forEach((element) => {
     allowedFieldsMap[element.name] = element.type;
   });
+  queryMapping.virtuals.forEach((element) => {
+    virtuals[element.sourceField] = element;
+  });
   const allowedFields = Object.keys(allowedFieldsMap);
   const allowedDataTypes = Object.values(allowedFieldsMap);
-  const validDataTypesArray = ['string', 'int', 'boolean', 'decimal'];
+  const validDataTypesArray = ['string', 'int', 'boolean', 'decimal', 'date'];
   const validDataTypes = new Set(validDataTypesArray);
   // check for the allowed types in queryHooks allowed type are string, int, boolean
   allowedDataTypes.forEach((element) => {
@@ -40,6 +44,25 @@
     return transformedValue;
   }
 
+  function transformBoolean(value) {
+    if (value !== 'true' && value !== 'false') {
+      throw {
+        message: `${value} is of type boolean and it is neither true nor false`
+      };
+    }
+    return value === 'true';
+  }
+
+  function transformDate(value) {
+    const transformedValue = new Date(value);
+    if (isNaN(transformedValue)) {
+      throw {
+        message: `${value} is of type date, insert date in ISO format like: "<YYYY-mm-ddTHH:MM:ss>" or "<YYYY-mm-ddTHH:MM:ssZ>"`
+      };
+    }
+    return transformedValue;
+  }
+
   function checkAllowedField(field) {
     if (!(field in allowedFieldsMap)) {
       throw {
@@ -48,9 +71,9 @@
     }
   }
 
-  function transformValue(value, targetFieldName) {
-    checkAllowedField(targetFieldName);
-    const targetType = allowedFieldsMap[targetFieldName];
+  function transformValue(value, field) {
+    checkAllowedField(field);
+    const targetType = allowedFieldsMap[field];
     try {
       let transformField;
       switch (targetType) {
@@ -76,16 +99,18 @@
         case 'boolean':
           if (Array.isArray(value)) {
             transformField = value.map((element) => {
-              // check every element is true and false
-              if (element !== 'true' && element !== 'false') {
-                throw {
-                  message: `${value} is of type boolean and it is neither true nor false`
-                };
-              }
-              return element === 'true';
+              return transformBoolean(element);
             });
           } else {
-            transformField = value === 'true';
+            transformField = transformBoolean(value);
+          }
+          break;
+
+        case 'date':
+          if (Array.isArray(value)) {
+            transformField = value.map((element) => transformDate(element));
+          } else {
+            transformField = transformDate(value);
           }
           break;
 
@@ -101,6 +126,7 @@
       };
     }
   }
+
   // this is database specific functions, move these out of parser later
   function transformOperator(operator) {
     let transformedOperator;
@@ -142,21 +168,27 @@
     return transformedOperator;
   }
 
-  function transformOperatorExpression2Query(value, field, operator){
+  function transformOperatorExpression2Query(value, field, operator) {
     const transformedValue = transformValue(value, field);
     const trandformedOperator = transformOperator(operator);
     const query = {};
-    const op = {}
+    const op = {};
     op[`${trandformedOperator}`] = transformedValue;
     query[`${field}`] = op;
-    return query
+    return query;
   }
-  function transformBooleanExpression2Query(operator, leftExpression, rightExpression){
+  
+  function transformBooleanExpression2Query(
+    operator,
+    leftExpression,
+    rightExpression
+  ) {
     const trandformedOperator = transformOperator(operator);
     const query = {};
     query[`${trandformedOperator}`] = [leftExpression, rightExpression];
     return query;
   }
+
 }
 // Top level rule is Expression
 Expression
@@ -197,17 +229,17 @@ OR
   }
 
 Field
-  = value:$([0-9a-zA-Z]+) {
+  = value:$([0-9a-zA-Z.:\-]+) {
       return value;
     }
     
 Term
-  = value:$("'"[0-9a-zA-Z]+ "'") {
+  = value:$("'"[0-9a-zA-Z.:\-]+ "'") {
       return value.replaceAll("'","").trim();
     }
     
 inTerm
-  =  value:$(_ ("'"[0-9a-zA-Z. ]+"'") _ ("," _ "'" _ [0-9a-zA-Z. ]+"'")* _)  {
+  =  value:$(_ ("'"[0-9a-zA-Z.:\- ]+"'") _ ("," _ "'" _ [0-9a-zA-Z.:\- ]+"'")* _)  {
        return value.split(",").map(element => element.replaceAll("'","").trim());
     }
 

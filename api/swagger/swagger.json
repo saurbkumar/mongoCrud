@@ -412,9 +412,14 @@
             "type": "string",
             "description": "user update timestamp"
           },
-          "version": {
-            "type": "integer",
-            "description": "user version"
+          "isActive": {
+            "type": "boolean",
+            "description": "user is active or not",
+            "example": false
+          },
+          "metadata": {
+            "type": "object",
+            "example": { "property1": 10 }
           }
         }
       },
@@ -468,6 +473,15 @@
             "minimum": 0,
             "maximum": 150,
             "example": 30
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "user is active or not",
+            "example": false
+          },
+          "metadata": {
+            "type": "object",
+            "example": { "property1": 10 }
           }
         }
       },

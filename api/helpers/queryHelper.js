@@ -7,7 +7,8 @@ const allowedSortFields = new Set(queryHooks.mapping().sortFields);
 
 module.exports = {
   transformMogoSortBy: transformMogoSortBy,
-  transformMongoQuery: transformMongoQuery
+  transformMongoQuery: transformMongoQuery,
+  transFormProjection: transFormProjection
 };
 
 function transformMogoSortBy(sortBy) {
@@ -15,7 +16,6 @@ function transformMogoSortBy(sortBy) {
   if (!sortBy) {
     return sortConfig;
   }
-  // +age
   sortBy.split(' ').forEach((field) => {
     const sortDirection = field.substring(0, 1);
     const sortfield = field.substring(1);
@@ -52,4 +52,20 @@ function transformMongoQuery(query) {
     }
   }
   return transformedQuery;
+}
+
+function transFormProjection(projection) {
+  if (!projection) {
+    return '';
+  }
+  projection.split(' ').forEach((field) => {
+    const projectionType = field.substring(0, 1);
+    if (projectionType != '-') {
+      throw {
+        message: `${projectionType} is not allowed. only '-' is allowed Bad request`,
+        statusCode: 400
+      };
+    }
+  });
+  return projection;
 }

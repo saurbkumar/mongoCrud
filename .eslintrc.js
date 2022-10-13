@@ -10,6 +10,11 @@ module.exports = {
   parserOptions: {
     ecmaVersion: 13
   },
+  ignorePatterns: [
+    '/api/helpers/mongoFilter.pegjs',
+    '/api/helpers/mongoFilter.js',
+    '**/*.md'
+  ],
   rules: {
     semi: ['error', 'always']
     // rules: { 'no-console': 'off' } // warn/ error

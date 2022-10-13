@@ -12,7 +12,9 @@ const userSchema = new mongoose.Schema(
     name: { type: String, index: true },
     age: { type: Number, index: true },
     address: { type: String, index: true },
-    country: { type: String, index: true }
+    country: { type: String, index: true },
+    isActive: { type: Boolean, index: true },
+    metadata: { type: Object, index: true }
   },
   {
     minimize: false,
@@ -54,7 +56,10 @@ async function createUser(user) {
     _id: shortId.generate(),
     name: user.name,
     age: user.age,
-    address: user.address
+    address: user.address,
+    country: user.country,
+    isActive: user.isActive,
+    metadata: user.metadata
   });
   logger.info(`createUser: creating user: ${JSON.stringify(user)}`);
   return userData;
@@ -70,6 +75,8 @@ async function updateUser(id, user) {
   if (user.age) result.age = user.age;
   if (user.address) result.address = user.address;
   if (user.name) result.name = user.name;
+  if (user.isActive != undefined) result.isActive = user.isActive;
+  if (user.metadata) result.metadata = user.metadata;
   logger.debug(`updateUser: updated user: ${JSON.stringify(user)}`);
   return await result.save();
   // return user;
@@ -87,6 +94,7 @@ async function deleteUser(id) {
 async function getUsers(top, skip, filter, sortBy, projection) {
   const sortConfig = queryHelper.transformMogoSortBy(sortBy);
   const filterConfig = queryHelper.transformMongoQuery(filter);
+  const projectionConfig = queryHelper.transFormProjection(projection);
   logger.info(
     `getUsers: getting users, top: ${top}, skip: ${skip}, filter: ${filter}, sortBy: ${sortConfig}, projection: ${projection}`
   );
@@ -98,7 +106,7 @@ async function getUsers(top, skip, filter, sortBy, projection) {
     skip: skip // number of doc to skip
   })
     .sort(sortConfig)
-    .select(projection);
+    .select(projectionConfig);
 
   // move this to pagination
   let totalDoc = await User.countDocuments(query).lean(); // find better way to do this, figure out in single query

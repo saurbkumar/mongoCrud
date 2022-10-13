@@ -29,6 +29,7 @@ describe('UserService', async function () {
   });
 
   after(async function () {
+    this.timeout(4000);
     await App.stop();
   });
 
@@ -43,14 +44,18 @@ describe('UserService', async function () {
         name: `name${count - index}`,
         age: index,
         address: `Address${index}`,
-        country: 'USA'
+        country: 'USA',
+        isActive: index % 2 == 0,
+        metadata: { prop1: 'randomValue1', prop2: 'randomValue2' }
       };
     } else {
       return {
         name: `name${Math.floor(Math.random() * 10000)}`,
         age: Math.floor(Math.random() * 100),
         address: `Address ${Math.floor(Math.random() * 10000)}`,
-        country: 'USA'
+        country: 'USA',
+        isActive: false,
+        metadata: { prop1: 'randomValue1', prop2: 'randomValue2' }
       };
     }
   }
@@ -260,6 +265,33 @@ describe('UserService', async function () {
         users.body.values.length.should.be.eql(0);
       });
 
+      it('FailCreateBadIsActive', async function () {
+        const req = createReq();
+        req.isActive = 'false'; // it should be boolean
+        await request
+          .post(v1BasePath + '/users')
+          .send(req)
+          .expect(400);
+
+        req.isActive = 'asd'; // it should be boolean
+        await request
+          .post(v1BasePath + '/users')
+          .send(req)
+          .expect(400);
+
+        req.isActive = '*'; // it should be boolean
+        await request
+          .post(v1BasePath + '/users')
+          .send(req)
+          .expect(400);
+
+        let users = await request.get(v1BasePath + '/users').expect(200);
+
+        users.body.should.have.property('count', 0);
+        users.body.should.have.property('values');
+        users.body.values.length.should.be.eql(0);
+      });
+
       it('createUser', async function () {
         const req = createReq();
         const res = await request
@@ -269,6 +301,9 @@ describe('UserService', async function () {
         res.body.should.have.property('name', req.name);
         res.body.should.have.property('age', req.age);
         res.body.should.have.property('address', req.address);
+        res.body.should.have.property('country', req.country);
+        res.body.should.have.property('metadata', req.metadata);
+        res.body.should.have.property('isActive', req.isActive);
         res.body.should.have.property('id');
         const userId = res.body.id;
         // get user and check properties
@@ -280,11 +315,16 @@ describe('UserService', async function () {
         user.body.should.have.property('age', req.age);
         user.body.should.have.property('address', req.address);
         user.body.should.have.property('id', userId);
+        user.body.should.have.property('country', req.country);
+        user.body.should.have.property('metadata', req.metadata);
+        user.body.should.have.property('isActive', req.isActive);
       });
 
-      it('createUserWithoutCountry', async function () {
+      it('createUserWithoutRequiredParameters', async function () {
         const req = createReq();
         delete req.country;
+        delete req.isActive;
+        delete req.metadata;
         const res = await request
           .post(v1BasePath + '/users')
           .send(req)
@@ -292,6 +332,8 @@ describe('UserService', async function () {
         res.body.should.have.property('name', req.name);
         res.body.should.have.property('age', req.age);
         res.body.should.not.have.property('country');
+        res.body.should.not.have.property('isActive');
+        res.body.should.not.have.property('metadata');
         res.body.should.have.property('id');
         const userId = res.body.id;
         // get user and check properties
@@ -301,7 +343,9 @@ describe('UserService', async function () {
           .expect(200);
         user.body.should.have.property('name', req.name);
         user.body.should.have.property('age', req.age);
-        res.body.should.not.have.property('country');
+        user.body.should.not.have.property('country');
+        user.body.should.not.have.property('isActive');
+        user.body.should.not.have.property('metadata');
         user.body.should.have.property('id', userId);
       });
     });
@@ -599,8 +643,65 @@ describe('UserService', async function () {
   });
 
   describe('ProjectionTest', async function () {
+    it('ProjectionTestFailBadQuery', async function () {
+      // create a users
+      const count = 4;
+      await bulkCreateUsers(count);
+      // query users
+      let params = {
+        $projection: `age -createdAt` // nedd - at the beginning
+      };
+
+      await request
+        .get(v1BasePath + '/users?' + encodeGetParams(params))
+        .expect(400);
+    });
+
     it('ProjectionTest', async function () {
-      // create a user
+      // create a users
+      const count = 4;
+      await bulkCreateUsers(count);
+      // query users
+      let params = {
+        $projection: `-age -createdAt`,
+        $top: count
+      };
+
+      let res = await request
+        .get(v1BasePath + '/users?' + encodeGetParams(params))
+        .expect(200);
+      res.body.should.have.property('count', count);
+      res.body.should.have.property('values');
+      res.body.values.length.should.eql(count);
+      res.body.values.forEach((user) => {
+        user.should.not.have.property('age');
+        user.should.not.have.property('createdAt');
+        user.should.have.property('name');
+        user.should.have.property('address');
+        user.should.have.property('id');
+        user.should.have.property('updatedAt');
+      });
+
+      // use random projection parameter
+      params = {
+        $projection: `-assge -createdAt`,
+        $top: count
+      };
+
+      res = await request
+        .get(v1BasePath + '/users?' + encodeGetParams(params))
+        .expect(200);
+      res.body.should.have.property('count', count);
+      res.body.should.have.property('values');
+      res.body.values.length.should.eql(count);
+      res.body.values.forEach((user) => {
+        user.should.have.property('age');
+        user.should.not.have.property('createdAt');
+        user.should.have.property('name');
+        user.should.have.property('address');
+        user.should.have.property('id');
+        user.should.have.property('updatedAt');
+      });
     });
   });
 
@@ -621,8 +722,8 @@ describe('UserService', async function () {
 
       // query users
       let params = {
-        $filter: `createdAt >= '2022-10-08T23:06:09.049Z'`,
-        $top: count // created at is not a allowed field
+        $filter: `createdAt >= '2022sdfZ'`,
+        $top: count // created at is not a valid timestamp
       };
       await request
         .get(v1BasePath + '/users?' + encodeGetParams(params))
@@ -630,6 +731,14 @@ describe('UserService', async function () {
 
       params = {
         $filter: ``, // it should have some value, blank is not allowed
+        $top: count
+      };
+      await request
+        .get(v1BasePath + '/users?' + encodeGetParams(params))
+        .expect(400);
+
+      params = {
+        $filter: `isActive = 'True'`, // it should be either true or false not anything else
         $top: count
       };
       await request
@@ -655,7 +764,6 @@ describe('UserService', async function () {
       res.body.should.have.property('values');
       checkData(res, 'age', [10, 11, 12, 13, 14, 15, 16, 17, 18, 19]);
 
-      // check age and other parameter
       params = {
         $filter: `age >= '2' and (address IN ('Address11', 'Address12', 'Address14') or name IN ('name17', 'name16'))`,
         $top: count // get all users for the given query
@@ -666,6 +774,72 @@ describe('UserService', async function () {
       res.body.should.have.property('count', 5);
       res.body.should.have.property('values');
       checkData(res, 'age', [3, 4, 11, 12, 14]);
+
+      params = {
+        $filter: `age >= '2' and (address IN ('Address11', 'Address12', 'Address14') or name IN ('name17', 'name16')) and isActive = 'true'`,
+        $top: count // get all users for the given query
+      };
+      res = await request
+        .get(v1BasePath + '/users?' + encodeGetParams(params))
+        .expect(200);
+      res.body.should.have.property('count', 3);
+      res.body.should.have.property('values');
+      checkData(res, 'age', [4, 12, 14]);
+    });
+
+    it('FilterDateFieldTest', async function () {
+      // create 4 different users in 4 different point in time and query
+
+      // user1
+      let res = await request
+        .post(v1BasePath + '/users')
+        .send(createReq())
+        .expect(200);
+      res.body.should.have.property('id');
+      const userId1 = res.body.id;
+
+      await new Promise((r) => setTimeout(r, 100)); // sleep for a while to create enough time gap
+
+      // user2
+      res = await request
+        .post(v1BasePath + '/users')
+        .send(createReq())
+        .expect(200);
+      res.body.should.have.property('id');
+      const userId2 = res.body.id;
+      const userId2CreatedAt = res.body.createdAt;
+
+      await new Promise((r) => setTimeout(r, 100)); // sleep for a while to create enough time gap
+
+      // user3
+      res = await request
+        .post(v1BasePath + '/users')
+        .send(createReq())
+        .expect(200);
+      res.body.should.have.property('id');
+
+      await new Promise((r) => setTimeout(r, 100)); // sleep for a while to create enough time gap
+
+      // user4
+      res = await request
+        .post(v1BasePath + '/users')
+        .send(createReq())
+        .expect(200);
+      res.body.should.have.property('id');
+
+      // query users
+      let params = {
+        $filter: `createdAt <= '${userId2CreatedAt}'`,
+        $top: 10 // get all users for the given query
+      };
+
+      res = await request
+        .get(v1BasePath + '/users?' + encodeGetParams(params))
+        .expect(200);
+      const allIds1 = res.body.values.map((element) => element.id);
+      allIds1.length.should.eql(2);
+      allIds1.includes(userId1).should.eql(true);
+      allIds1.includes(userId2).should.eql(true);
     });
 
     it('FilterDeleteTestFailBadQuery', async function () {

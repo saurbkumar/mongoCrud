@@ -70,8 +70,8 @@ app.use(
 
 // eslint-disable-next-line no-unused-vars
 app.use(function (err, req, res, next) {
-  logger.info(`${req.url}`, {
-    statusCode: res.statusCode,
+  logger.error(`${req.url}`, {
+    statusCode: err.status || 500,
     method: req.method,
     action: 'End'
   });
