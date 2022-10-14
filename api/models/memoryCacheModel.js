@@ -9,7 +9,7 @@ module.exports = {
 };
 
 function getObject(key) {
-  return undefined; // undefine if miss
+  return undefined;
 }
 
 function createObject(key, value) {
