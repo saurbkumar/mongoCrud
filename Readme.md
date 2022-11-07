@@ -38,13 +38,14 @@ Type `npm start`. Few lines will comes up and then go to ["http://localhost:3000
 <p align="right">(<a href="#top">back to top</a>)</p>
 
 <!-- ROADMAP -->
-
 ## Roadmap
 
 - [ ] Add correlationId to every log
 - [ ] Add pagination links and combined test cases like of filter and paginations
 - [ ] Add support for the virtuals
 - [ ] Add live and ready end point
+
+<p align="right">(<a href="#top">back to top</a>)</p>
 
 <!-- Explore -->
 ## Explore The Project
@@ -106,33 +107,77 @@ To see what kind of queries can be used and how to use this see [filter](#filter
 
 `/api/helpers/queryHooksjs` see [filter](#filter) section.  
 
+<p align="right">(<a href="#top">back to top</a>)</p>
+
+<!-- Service Features -->
 ## Service Features
 
 This service has out of the box support [sorting](#sorting), [filter](#filter), [projection](#projection) and [pagination](#pagination), background tasks, [Metrics](#metrics)  
-Assuming this service have `name, age, address, country` in the the schema.
+Assuming this service have `name, age, address, country` fields in the the schema. Then following features are available  
+
 <!-- Sorting -->
 ## Sorting
 
-In the get request, documents can sorted `$sortBy` parameter. Documents can be sorted in both ascending and descending direction. Ex: `+age -name` to sort the documents by age in ascending order and name is descending order.
-To control what fields you can sort, go to `/api/helpers/queryHooks.js` and inside the `mapping` function modify the `sortFields` keys.  
-For more information, see generated [swagger docs](http://localhost:3000/user-service/docs/#/)  
+In the get request, documents can sorted `$sortBy` parameter. Documents can be sorted in both ascending and descending direction. Ex: `+age -name` to sort the documents by age in ascending order and name is descending order.  
+To control what fields you can sort, go to `/api/helpers/queryHooks.js` and inside the `mapping` function modify the `sortFields` keys. Assuming, you want to enable `name` and `age` sorting, then the sortField in the mapping function will be like:
+
+```
+  ...
+  function mapping() {
+    return {
+      sortFields: ['name', 'age'],
+  ...
+```
+
+<p align="right">(<a href="#top">back to top</a>)</p>
 
 <!-- Filter -->
 ## Filter
 
-Documents can be filtere using the parameter `$filter` by writing SQL like statements. For example to get all documents where age in ['23', '45'] and address = 'address1' use it should be like `age in ( '23', '45') and address = 'address1'`. Here one thing to not down is the quotes (`''`) around all the values, these quotes are always reqired, for every value. Right now `integer`, `string`, `boolean`, `date` data types are supported. To add more data type support, see `/api/helpers/mongoFilter.pegjs` file.
+Documents can be filtered using the parameter `$filter` by writing SQL-like statements. For example, to get all documents where the age is in ['23', '45'] and address = 'address1', the parameter `$filter` should be like `age in ( '23', '45') and address = 'address1'`.  
+Here one thing to note down is the quotes (`''`) around all the values, these quotes are always required, for every value. Right now `integer`, `string`, `boolean`, and `date` data types are supported. To add more data type support, see `/api/helpers/mongoFilter.pegjs` file. For more examples see filter test cases.  
+
+To control what fields you can filter, go to `/api/helpers/queryHooks.js` and inside the `mapping` function modify the `queryFiels` keys. Assuming, you want to enable `name` and `age` filter, then the queryFiels in the mapping function will be like:
+
+```
+  ...
+  function mapping() {
+    ...
+      queryFiels: [
+        { name: 'name', type: 'string' },
+        { name: 'age', type: 'int' }
+      ],
+    ...
+  ...
+```
+
+<p align="right">(<a href="#top">back to top</a>)</p>
 
 <!-- Projection -->
 ## Projection
 
-Projection can be filtere using the parameter `$projection
+Projection is a way to select only the necessary data rather than selecting every column. Use the `$projection` parameter to define the projection fields. Assuming you want to get only `age` and `name` out of all the available columns in the database, then the `$projection` parameter will be like `age name`. For more examples see filter test cases.  
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
 <!-- Pagination -->
 ## Pagination
 
- By Default applications exposes, pagination parameters `$top` and `$skip`
+ By Default applications exposes, pagination parameters [$top](https://github.com/microsoft/api-guidelines/blob/vNext/Guidelines.md#982-client-driven-paging) and [$skip](https://github.com/microsoft/api-guidelines/blob/vNext/Guidelines.md#982-client-driven-paging).
+
+ <p align="right">(<a href="#top">back to top</a>)</p>
+
+<!-- Pagination -->
+## Swagger UI
+
+ To visualize and interact with the API’s resources go to ["http://localhost:3000/user-service/docs"](http://localhost:3000/user-service/docs/#/)
+
+ <p align="right">(<a href="#top">back to top</a>)</p>
+
+<!-- Request and response validation -->
+## Request and response validation
+
+Define your request body or request parameter in the swagger file (`api/swagger/swagger.json`). To know more about the definitions, see [Swagger Documentation](https://swagger.io/specification/). According to the definitions defined in the swagger, all the variations will be performed.
 
  <p align="right">(<a href="#top">back to top</a>)</p>
 
@@ -145,10 +190,6 @@ The application `/metrics` end point gives the [prometheus](https://prometheus.i
 ![Sample Grafan Dashboard](metrics/Capture.PNG "Sample Grafan Dashboard")
 
 <p align="right">(<a href="#top">back to top</a>)</p>
-
-## swaggerUI
-
-## Request and response validation
 
 <!-- CONTRIBUTING -->
 ## Contributing
