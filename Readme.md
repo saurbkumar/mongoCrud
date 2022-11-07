@@ -180,7 +180,7 @@ Projection is a way to select only the necessary data rather than selecting ever
 <!-- Request and response validation -->
 ## Request and response validation
 
-Define your request body or request parameter in the swagger file (`api/swagger/swagger.json`). To know more about the definitions, see [Swagger Documentation](https://swagger.io/specification/). According to the definitions defined in the swagger, all the variations will be performed.
+Define your request body or request parameter in the swagger file (`api/swagger/swagger.json`). To know more about the definitions, see [Swagger Documentation](https://swagger.io/specification/). According to the definitions defined in the swagger, all the validations will be performed.
 
  <p align="right">(<a href="#top">back to top</a>)</p>
 
