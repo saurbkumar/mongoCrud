@@ -107,6 +107,9 @@ To see what kind of queries can be used and how to use this see [filter](#filter
 
 `/api/helpers/queryHooksjs` see [filter](#filter) section.  
 
+Reqest flow diagram  
+![Alt text](./flowDiagram.drawio.svg)
+
 <p align="right">(<a href="#top">back to top</a>)</p>
 
 <!-- Service Features -->
