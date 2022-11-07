@@ -23,10 +23,10 @@ async function deleteUser(id) {
   return await model.deleteUser(id);
 }
 
-async function getUsers(top, skip, sortBy, projection) {
-  return await model.getUsers(top, skip, sortBy, projection);
+async function getUsers(top, skip, filter, sortBy, projection) {
+  return await model.getUsers(top, skip, filter, sortBy, projection);
 }
 
-async function deleteUsers() {
-  return await model.deleteUsers();
+async function deleteUsers(filter) {
+  return await model.deleteUsers(filter);
 }

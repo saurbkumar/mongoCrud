@@ -9,10 +9,12 @@ const shortId = require('../helpers/shortId');
 const userSchema = new mongoose.Schema(
   {
     _id: String,
-    name: String,
-    age: Number,
-    address: String,
-    country: String
+    name: { type: String, index: true },
+    age: { type: Number, index: true },
+    address: { type: String, index: true },
+    country: { type: String, index: true },
+    isActive: { type: Boolean, index: true },
+    metadata: { type: Object, index: true }
   },
   {
     minimize: false,
@@ -54,7 +56,10 @@ async function createUser(user) {
     _id: shortId.generate(),
     name: user.name,
     age: user.age,
-    address: user.address
+    address: user.address,
+    country: user.country,
+    isActive: user.isActive,
+    metadata: user.metadata
   });
   logger.info(`createUser: creating user: ${JSON.stringify(user)}`);
   return userData;
@@ -70,6 +75,8 @@ async function updateUser(id, user) {
   if (user.age) result.age = user.age;
   if (user.address) result.address = user.address;
   if (user.name) result.name = user.name;
+  if (user.isActive != undefined) result.isActive = user.isActive;
+  if (user.metadata) result.metadata = user.metadata;
   logger.debug(`updateUser: updated user: ${JSON.stringify(user)}`);
   return await result.save();
   // return user;
@@ -77,29 +84,32 @@ async function updateUser(id, user) {
 
 async function deleteUser(id) {
   logger.info(`deleteUser: removing user for Id: ${id}`);
-  let result = await User.deleteOne({ _id: id });
+  let result = await User.deleteOne({ _id: id }); // here not using write before read
   if (result.deletedCount != 1) {
     logger.error(`deleteUser: userId ${id} not found`);
     return false;
   }
   return true;
 }
-async function getUsers(top, skip, sortBy, projection) {
+async function getUsers(top, skip, filter, sortBy, projection) {
   const sortConfig = queryHelper.transformMogoSortBy(sortBy);
+  const filterConfig = queryHelper.transformMongoQuery(filter);
+  const projectionConfig = queryHelper.transFormProjection(projection);
   logger.info(
-    `getUsers: getting users, top: ${top}, skip: ${skip}, sortBy: ${sortConfig}`
+    `getUsers: getting users, top: ${top}, skip: ${skip}, filter: ${filter}, sortBy: ${sortConfig}, projection: ${projection}`
   );
 
-  let query = {};
+  let query = filterConfig;
+  logger.debug(`getUsers: query: ${JSON.stringify(query)}`);
   const result = await User.find(query, [], {
     limit: top, // number of top document return
     skip: skip // number of doc to skip
   })
     .sort(sortConfig)
-    .select(projection);
+    .select(projectionConfig);
 
   // move this to pagination
-  let totalDoc = await User.count({}).lean();
+  let totalDoc = await User.countDocuments(query).lean(); // find better way to do this, figure out in single query
   if (totalDoc - skip > 0) {
     totalDoc = totalDoc - skip;
   } else {
@@ -111,10 +121,15 @@ async function getUsers(top, skip, sortBy, projection) {
   };
 }
 
-async function deleteUsers() {
-  logger.info(`deleteUsers: removing all users`);
-  let result = await User.deleteMany({});
-  return { count: result };
+async function deleteUsers(filter) {
+  const filterConfig = queryHelper.transformMongoQuery(filter);
+  logger.info(
+    `deleteUsers: removing all users, for query: ${JSON.stringify(
+      filterConfig
+    )}`
+  );
+  let result = await User.deleteMany(filterConfig);
+  return { count: result.deletedCount };
 }
 
 function copy(dbObj) {

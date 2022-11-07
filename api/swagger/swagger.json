@@ -89,6 +89,16 @@
             }
           },
           {
+            "name": "$filter",
+            "in": "query",
+            "description": "Filter records using sql like where clause. For all the available clause see readme. \n For the allowed filter fields check your queryHooks file",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
             "name": "$sortBy",
             "in": "query",
             "description": "This will sort documents by the database filed, default is no sort \n <br> Format is '+/-dbField'. '+' is for ascending and '-' is for descending order. <br> Ex '+age -name' will sort documents by age(ascending) and name(descending)",
@@ -186,6 +196,18 @@
         "description": "Delete all users",
         "operationId": "deleteUsers",
         "x-dont-log": false,
+        "parameters": [
+          {
+            "name": "$filter",
+            "in": "query",
+            "description": "Delete records using sql like where clause. For all the available clause see readme. \n For the allowed filter fields check your queryHooks file",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "counts",
@@ -390,9 +412,14 @@
             "type": "string",
             "description": "user update timestamp"
           },
-          "version": {
-            "type": "integer",
-            "description": "user version"
+          "isActive": {
+            "type": "boolean",
+            "description": "user is active or not",
+            "example": false
+          },
+          "metadata": {
+            "type": "object",
+            "example": { "property1": 10 }
           }
         }
       },
@@ -446,6 +473,15 @@
             "minimum": 0,
             "maximum": 150,
             "example": 30
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "user is active or not",
+            "example": false
+          },
+          "metadata": {
+            "type": "object",
+            "example": { "property1": 10 }
           }
         }
       },
