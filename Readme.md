@@ -206,6 +206,3 @@ Don't forget to give the project a star! Thanks again!
 5. Open a Pull Request
 
 <p align="right">(<a href="#top">back to top</a>)</p>
-
-TODO: add instructions for the filter(like alias and all), how to use and when to use it , support for the dates and virtuals like id, support nested field in filters like if user add /metadata/, then all
-the nested property of that filed should be used a filter
