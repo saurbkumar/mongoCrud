@@ -55,6 +55,73 @@
         }
       }
     },
+    "/app/ready": {
+      "x-controller": "healthController",
+      "get": {
+        "tags": ["Application Health"],
+        "summary": "Get application ready",
+        "operationId": "getReady",
+        "description": "Get app ready status",
+        "x-dont-log": false,
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Get app status to ready to serve the traffic",
+            "content": {
+              "application/text": {
+                "schema": {
+                  "type": "string",
+                  "$ref": "#/components/schemas/Ready"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/app/live": {
+      "x-controller": "healthController",
+      "get": {
+        "tags": ["Application Health"],
+        "summary": "Get application live",
+        "operationId": "getLive",
+        "description": "Get app live status",
+        "x-dont-log": false,
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "live status",
+            "content": {
+              "application/text": {
+                "schema": {
+                  "$ref": "#/components/schemas/Live"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/users": {
       "x-controller": "controller",
       "get": {
@@ -488,6 +555,52 @@
       "Metrics": {
         "type": "string",
         "example": "# HELP userservice_process_cpu_user_seconds_total Total user CPU time spent in seconds. \n# TYPE userservice_process_cpu_user_seconds_total counter\n userservice_process_cpu_user_seconds_total{NODE_APP_INSTANCE='abcd'} 182.82899999999137"
+      },
+      "Ready": {
+        "type": "object",
+        "required": ["status", "components"],
+        "properties": {
+          "status": {
+            "type": "string",
+            "description": "App health status",
+            "example": "App is healthy"
+          },
+          "components": {
+            "type": "array",
+            "description": "Application Ready components",
+            "items": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/ReadyComponents"
+                }
+              ]
+            }
+          }
+        }
+      },
+      "ReadyComponents": {
+        "type": "object",
+        "required": ["status", "name"],
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "mongo-db working fine"
+          },
+          "name": {
+            "type": "string",
+            "example": "mongo-db database"
+          }
+        }
+      },
+      "Live": {
+        "type": "object",
+        "description": "Application live status",
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "ok"
+          }
+        }
       },
       "Error": {
         "properties": {

@@ -1,6 +1,6 @@
 const memoryCacheModel = require('../models/memoryCacheModel');
 const dbModel = require('../models/mongoDbModel');
-// TODO: Remove caches - just give a placeholder for the distributed cache here
+
 module.exports = {
   getUser: getUser,
   createUser: createUser,
