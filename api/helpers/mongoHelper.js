@@ -64,7 +64,7 @@ mongoose.connection.on('error', (err) => {
 async function ready() {
   return {
     status: DBConnected,
-    message: `database is ${
+    message: `database ${
       DBConnected ? '' : 'not'
     } connected, current database state ${DBstate}`
   };

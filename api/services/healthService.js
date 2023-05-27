@@ -23,7 +23,7 @@ async function getLive() {
   }
   let promises = [];
   for (let liveService of liveComponents) {
-    promises.push(liveService[1]); // first is service name, second is the promise
+    promises.push(liveService[1]()); // first is service name, second is the promise
   }
   let result = false;
   try {
@@ -47,13 +47,14 @@ async function getReady() {
   }
   let promises = [];
   for (let readyService of readyComponents) {
-    promises.push(readyService[1]);
+    promises.push(readyService[1]()); // fucntion call
   }
   try {
     const healtCompResults = await Promise.allSettled(promises); // get result of each promise
     for (const [index, promiseResp] of healtCompResults.entries()) {
       if (!promiseResp.value.status) {
         result.isHealthy = false;
+        result.status = 'App is not healthy';
       }
       result.components.push({
         // all helper should handel the error properly, and should not throw error

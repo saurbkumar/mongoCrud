@@ -117,7 +117,7 @@ async function getUsers(top, skip, filter, sortBy, projection) {
   }
   return {
     count: totalDoc,
-    values: result
+    value: result
   };
 }
 

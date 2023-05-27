@@ -93,8 +93,8 @@ describe('UserService', async function () {
         let users = await request.get(v1BasePath + '/users').expect(200);
 
         users.body.should.have.property('count', 0);
-        users.body.should.have.property('values');
-        users.body.values.length.should.be.eql(0);
+        users.body.should.have.property('value');
+        users.body.value.length.should.be.eql(0);
 
         await request.get(v1BasePath + '/users/' + 'randomId').expect(404);
       });
@@ -104,8 +104,8 @@ describe('UserService', async function () {
         let users = await request.get(v1BasePath + '/users').expect(200);
 
         users.body.should.have.property('count', 0);
-        users.body.should.have.property('values');
-        users.body.values.length.should.be.eql(0);
+        users.body.should.have.property('value');
+        users.body.value.length.should.be.eql(0);
 
         await request
           .get(v1BasePath + '/users/' + 'thisIsReallyLongUserIsMaxIs12')
@@ -120,8 +120,8 @@ describe('UserService', async function () {
           .expect(200);
 
         users.body.should.have.property('count', 0);
-        users.body.should.have.property('values');
-        users.body.values.length.should.be.eql(0);
+        users.body.should.have.property('value');
+        users.body.value.length.should.be.eql(0);
 
         const req = createReq();
         const res = await request
@@ -150,16 +150,16 @@ describe('UserService', async function () {
         let users = await request.get(v1BasePath + '/users').expect(200);
 
         users.body.should.have.property('count', 0);
-        users.body.should.have.property('values');
-        users.body.values.length.should.be.eql(0);
+        users.body.should.have.property('value');
+        users.body.value.length.should.be.eql(0);
         const count = 3;
         await bulkCreateUsers(count);
         // get user and check properties
         users = await request.get(v1BasePath + '/users').expect(200);
 
         users.body.should.have.property('count', count);
-        users.body.should.have.property('values');
-        users.body.values.length.should.be.eql(count);
+        users.body.should.have.property('value');
+        users.body.value.length.should.be.eql(count);
       });
     });
 
@@ -175,8 +175,8 @@ describe('UserService', async function () {
         let users = await request.get(v1BasePath + '/users').expect(200);
 
         users.body.should.have.property('count', 0);
-        users.body.should.have.property('values');
-        users.body.values.length.should.be.eql(0);
+        users.body.should.have.property('value');
+        users.body.value.length.should.be.eql(0);
       });
 
       it('FailCreateInvalidName', async function () {
@@ -190,8 +190,8 @@ describe('UserService', async function () {
         let users = await request.get(v1BasePath + '/users').expect(200);
 
         users.body.should.have.property('count', 0);
-        users.body.should.have.property('values');
-        users.body.values.length.should.be.eql(0);
+        users.body.should.have.property('value');
+        users.body.value.length.should.be.eql(0);
       });
 
       it('FailCreateNoAddress', async function () {
@@ -205,8 +205,8 @@ describe('UserService', async function () {
         let users = await request.get(v1BasePath + '/users').expect(200);
 
         users.body.should.have.property('count', 0);
-        users.body.should.have.property('values');
-        users.body.values.length.should.be.eql(0);
+        users.body.should.have.property('value');
+        users.body.value.length.should.be.eql(0);
       });
 
       it('FailCreateRandomAddress', async function () {
@@ -220,8 +220,8 @@ describe('UserService', async function () {
         let users = await request.get(v1BasePath + '/users').expect(200);
 
         users.body.should.have.property('count', 0);
-        users.body.should.have.property('values');
-        users.body.values.length.should.be.eql(0);
+        users.body.should.have.property('value');
+        users.body.value.length.should.be.eql(0);
       });
 
       it('FailCreateNoAge', async function () {
@@ -235,8 +235,8 @@ describe('UserService', async function () {
         let users = await request.get(v1BasePath + '/users').expect(200);
 
         users.body.should.have.property('count', 0);
-        users.body.should.have.property('values');
-        users.body.values.length.should.be.eql(0);
+        users.body.should.have.property('value');
+        users.body.value.length.should.be.eql(0);
       });
 
       it('FailCreateRandomAge', async function () {
@@ -261,8 +261,8 @@ describe('UserService', async function () {
         let users = await request.get(v1BasePath + '/users').expect(200);
 
         users.body.should.have.property('count', 0);
-        users.body.should.have.property('values');
-        users.body.values.length.should.be.eql(0);
+        users.body.should.have.property('value');
+        users.body.value.length.should.be.eql(0);
       });
 
       it('FailCreateBadIsActive', async function () {
@@ -288,8 +288,8 @@ describe('UserService', async function () {
         let users = await request.get(v1BasePath + '/users').expect(200);
 
         users.body.should.have.property('count', 0);
-        users.body.should.have.property('values');
-        users.body.values.length.should.be.eql(0);
+        users.body.should.have.property('value');
+        users.body.value.length.should.be.eql(0);
       });
 
       it('createUser', async function () {
@@ -492,8 +492,8 @@ describe('UserService', async function () {
         // get all users
         res = await request.get(v1BasePath + '/users').expect(200);
         res.body.should.have.property('count', 0);
-        res.body.should.have.property('values');
-        res.body.values.length.should.be.eql(0);
+        res.body.should.have.property('value');
+        res.body.value.length.should.be.eql(0);
       });
 
       it('DeleteAllUsers', async function () {
@@ -502,8 +502,8 @@ describe('UserService', async function () {
 
         let res = await request.get(v1BasePath + '/users').expect(200);
         res.body.should.have.property('count', count);
-        res.body.should.have.property('values');
-        res.body.values.length.should.be.eql(count);
+        res.body.should.have.property('value');
+        res.body.value.length.should.be.eql(count);
         // delete all users
         res = await request.delete(v1BasePath + '/users').expect(200);
         res.body.should.have.property('count', count);
@@ -511,8 +511,8 @@ describe('UserService', async function () {
         // get all user and check the count
         res = await request.get(v1BasePath + '/users').expect(200);
         res.body.should.have.property('count', 0);
-        res.body.should.have.property('values');
-        res.body.values.length.should.be.eql(0);
+        res.body.should.have.property('value');
+        res.body.value.length.should.be.eql(0);
       });
     });
   });
@@ -542,32 +542,32 @@ describe('UserService', async function () {
         .get(v1BasePath + `/users?$top=${top}`)
         .expect(200);
       res.body.should.have.property('count', count);
-      res.body.should.have.property('values');
-      res.body.values.should.have.length(top);
+      res.body.should.have.property('value');
+      res.body.value.should.have.length(top);
 
       // apply skip
       res = await request
         .get(v1BasePath + `/users?$top=${top}&$skip=${skip}`)
         .expect(200);
       res.body.should.have.property('count', count - skip);
-      res.body.should.have.property('values');
-      res.body.values.should.have.length(top);
+      res.body.should.have.property('value');
+      res.body.value.should.have.length(top);
 
       // apply skip
       res = await request
         .get(v1BasePath + `/users?$top=13&$skip=7`)
         .expect(200);
       res.body.should.have.property('count', 13);
-      res.body.should.have.property('values');
-      res.body.values.should.have.length(13);
+      res.body.should.have.property('value');
+      res.body.value.should.have.length(13);
 
       // apply skip
       res = await request
         .get(v1BasePath + `/users?$top=20&$skip=21`)
         .expect(200);
       res.body.should.have.property('count', 0);
-      res.body.should.have.property('values');
-      res.body.values.should.have.length(0);
+      res.body.should.have.property('value');
+      res.body.value.should.have.length(0);
     });
 
     it('FailSortUsersBadParameter', async function () {
@@ -604,9 +604,9 @@ describe('UserService', async function () {
         .get(v1BasePath + '/users?' + encodeGetParams(params))
         .expect(200);
       res.body.should.have.property('count', count);
-      res.body.should.have.property('values');
+      res.body.should.have.property('value');
       for (let index = 0; index < count; index++) {
-        res.body.values[index].age.should.be.eql(index);
+        res.body.value[index].age.should.be.eql(index);
       }
 
       params = {
@@ -618,10 +618,10 @@ describe('UserService', async function () {
         .get(v1BasePath + '/users?' + encodeGetParams(params))
         .expect(200);
       res.body.should.have.property('count', count);
-      res.body.should.have.property('values');
+      res.body.should.have.property('value');
 
       for (let index = count - 1; index >= count; index--) {
-        res.body.values[index].age.should.be.eql(index);
+        res.body.value[index].age.should.be.eql(index);
       }
 
       // use skip also
@@ -634,10 +634,10 @@ describe('UserService', async function () {
         .get(v1BasePath + '/users?' + encodeGetParams(params))
         .expect(200);
       res.body.should.have.property('count', count - 10);
-      res.body.should.have.property('values');
+      res.body.should.have.property('value');
 
       for (let index = 0; index < 10; index++) {
-        res.body.values[index].age.should.be.eql(index + 10);
+        res.body.value[index].age.should.be.eql(index + 10);
       }
     });
   });
@@ -671,9 +671,9 @@ describe('UserService', async function () {
         .get(v1BasePath + '/users?' + encodeGetParams(params))
         .expect(200);
       res.body.should.have.property('count', count);
-      res.body.should.have.property('values');
-      res.body.values.length.should.eql(count);
-      res.body.values.forEach((user) => {
+      res.body.should.have.property('value');
+      res.body.value.length.should.eql(count);
+      res.body.value.forEach((user) => {
         user.should.not.have.property('age');
         user.should.not.have.property('createdAt');
         user.should.have.property('name');
@@ -692,9 +692,9 @@ describe('UserService', async function () {
         .get(v1BasePath + '/users?' + encodeGetParams(params))
         .expect(200);
       res.body.should.have.property('count', count);
-      res.body.should.have.property('values');
-      res.body.values.length.should.eql(count);
-      res.body.values.forEach((user) => {
+      res.body.should.have.property('value');
+      res.body.value.length.should.eql(count);
+      res.body.value.forEach((user) => {
         user.should.have.property('age');
         user.should.not.have.property('createdAt');
         user.should.have.property('name');
@@ -708,8 +708,8 @@ describe('UserService', async function () {
   describe('FilterTest', async function () {
     function checkData(res, field, targetValues) {
       // gather all vales
-      const data = new Set(res.body.values.map((user) => user[`${field}`]));
-      // check all values
+      const data = new Set(res.body.value.map((user) => user[`${field}`]));
+      // check all value
       for (let val of targetValues) {
         data.has(val).should.eql(true);
       }
@@ -761,7 +761,7 @@ describe('UserService', async function () {
         .get(v1BasePath + '/users?' + encodeGetParams(params))
         .expect(200);
       res.body.should.have.property('count', 10); // only 10 record should match the above criteria
-      res.body.should.have.property('values');
+      res.body.should.have.property('value');
       checkData(res, 'age', [10, 11, 12, 13, 14, 15, 16, 17, 18, 19]);
 
       params = {
@@ -772,7 +772,7 @@ describe('UserService', async function () {
         .get(v1BasePath + '/users?' + encodeGetParams(params))
         .expect(200);
       res.body.should.have.property('count', 5);
-      res.body.should.have.property('values');
+      res.body.should.have.property('value');
       checkData(res, 'age', [3, 4, 11, 12, 14]);
 
       params = {
@@ -783,7 +783,7 @@ describe('UserService', async function () {
         .get(v1BasePath + '/users?' + encodeGetParams(params))
         .expect(200);
       res.body.should.have.property('count', 3);
-      res.body.should.have.property('values');
+      res.body.should.have.property('value');
       checkData(res, 'age', [4, 12, 14]);
     });
 
@@ -836,7 +836,7 @@ describe('UserService', async function () {
       res = await request
         .get(v1BasePath + '/users?' + encodeGetParams(params))
         .expect(200);
-      const allIds1 = res.body.values.map((element) => element.id);
+      const allIds1 = res.body.value.map((element) => element.id);
       allIds1.length.should.eql(2);
       allIds1.includes(userId1).should.eql(true);
       allIds1.includes(userId2).should.eql(true);
@@ -879,8 +879,8 @@ describe('UserService', async function () {
         .get(v1BasePath + '/users?' + encodeGetParams(params))
         .expect(200);
       res.body.should.have.property('count', 0);
-      res.body.should.have.property('values');
-      res.body.values.length.should.eql(0);
+      res.body.should.have.property('value');
+      res.body.value.length.should.eql(0);
       // other users and check if the remaining users exist
       params = {
         $top: count // get all users for the given query
@@ -889,8 +889,8 @@ describe('UserService', async function () {
         .get(v1BasePath + '/users?' + encodeGetParams(params))
         .expect(200);
       res.body.should.have.property('count', 15);
-      res.body.should.have.property('values');
-      res.body.values.length.should.eql(15);
+      res.body.should.have.property('value');
+      res.body.value.length.should.eql(15);
       checkData(
         res,
         'age',

@@ -9,14 +9,10 @@ module.exports = {
 async function getLive(req, res) {
   try {
     const result = await healthService.getLive();
-    const response = {
-      status: 'ok'
-    };
     if (result) {
-      return res.json(result);
+      return res.json({ status: 'ok' });
     } else {
-      response.status = 'Error';
-      return res.status(503).send(response);
+      throw { statusCode: 503, message: 'Error' };
     }
   } catch (error) {
     logger.error(`getUsers: Error while getLive: ${error}`);
@@ -30,15 +26,12 @@ async function getLive(req, res) {
 async function getReady(req, res) {
   try {
     const result = await healthService.getReady();
-    const appReady = '';
-    const response = {
-      status: 'ok'
-    };
-    if (result) {
+    const appReady = result.isHealthy;
+    delete result.isHealthy;
+    if (appReady) {
       return res.json(result);
     } else {
-      response.status = 'Error';
-      return res.status(503).send(response);
+      return res.status(503).send(result);
     }
   } catch (error) {
     logger.error(`getUsers: Error while getReady: ${error}`);

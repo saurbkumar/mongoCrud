@@ -66,9 +66,20 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "Get app status to ready to serve the traffic",
+            "description": "Get app ready status to serve the traffic",
             "content": {
-              "application/text": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "$ref": "#/components/schemas/Ready"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "App is not healthy",
+            "content": {
+              "application/json": {
                 "schema": {
                   "type": "string",
                   "$ref": "#/components/schemas/Ready"
@@ -102,7 +113,7 @@
           "200": {
             "description": "live status",
             "content": {
-              "application/text": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Live"
                 }
@@ -492,7 +503,7 @@
       },
       "Users": {
         "type": "object",
-        "required": ["count", "value"],
+        "required": ["count", "value", "links"],
         "properties": {
           "count": {
             "type": "integer",
@@ -509,6 +520,28 @@
                 }
               ],
               "required": ["id", "name", "address", "age"]
+            }
+          },
+          "links": {
+            "type": "object",
+            "required": ["next", "previous", "last"],
+            "description": "pagination links",
+            "properties": {
+              "next": {
+                "type": "string",
+                "description": "paginated data next link",
+                "example": "/users?$top=10&$skip=0"
+              },
+              "previous": {
+                "type": "string",
+                "description": "paginated previous next link",
+                "example": "/users?$top=10&$skip=0"
+              },
+              "last": {
+                "type": "string",
+                "description": "paginated last next link",
+                "example": "/users?$top=10&$skip=10"
+              }
             }
           }
         }
