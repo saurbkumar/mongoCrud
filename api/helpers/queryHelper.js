@@ -8,7 +8,8 @@ const allowedSortFields = new Set(queryHooks.mapping().sortFields);
 module.exports = {
   transformMogoSortBy: transformMogoSortBy,
   transformMongoQuery: transformMongoQuery,
-  transFormProjection: transFormProjection
+  transFormProjection: transFormProjection,
+  generatePaginationLinks: generatePaginationLinks
 };
 
 function transformMogoSortBy(sortBy) {
@@ -68,4 +69,27 @@ function transFormProjection(projection) {
     }
   });
   return projection;
+}
+
+function generatePaginationLinks(url, totalDocs) {
+  const links = {
+    next: '',
+    previous: '',
+    last: ''
+  };
+  let hrefLast = new URL(url);
+  let hrefPrevious = new URL(url);
+  let hrefNext = new URL(url);
+
+  const top = hrefLast.searchParams.get('$top');
+  const skip = hrefLast.searchParams.get('$skip');
+
+  // next link
+  hrefNext.searchParams.set('$top', top);
+  hrefNext.searchParams.set('$skip', skip + top);
+  links.next = hrefNext.href;
+
+  // previous link
+  // only top and skip will change
+  // next = top=top, skip = skip + top, last = totalDocs - (totalDocs%top)
 }
