@@ -80,6 +80,13 @@ describe('UserService', async function () {
     await Promise.all(promises);
   }
 
+  describe('AppHealthTest', async function () {
+    it('LiveCheckWhenDependentComponentFails', async function () {});
+    it('LiveCheckWhenDependentPassed', async function () {});
+
+    it('ReadyCheckWhenDependentComponentFails', async function () {});
+    it('ReadyCheckWhenDependentPassed', async function () {});
+  });
   describe('CreateUpdateDelete', async function () {
     describe('GetUsers', async function () {
       it('FailAdditionalQueryParameter', async function () {
@@ -966,5 +973,10 @@ describe('UserService', async function () {
         `{"$and":[{"name":{"$eq":"dd"}},{"$and":[{"age":{"$eq":10}},{"$or":[{"address":{"$nin":["add1","add2"]}},{"country":{"$eq":"cty"}}]}]}]}`
       );
     });
+  });
+
+  describe('PaginationLinksTest', async function () {
+    it('linksWhenTopIsDivisibleByTotalDocs', async function () {});
+    it('linksWhenTopIsNotDivisibleByTotalDocs', async function () {});
   });
 });
