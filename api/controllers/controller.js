@@ -71,7 +71,7 @@ async function deleteUser(req, res) {
 async function getUsers(req, res) {
   try {
     let fullUrl = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
-    const result = await service.getUsers(
+    let result = await service.getUsers(
       req.query.$top,
       req.query.$skip,
       req.query.$filter,
@@ -79,7 +79,7 @@ async function getUsers(req, res) {
       req.query.$projection
     );
     const links = queryHelper.generatePaginationLinks(fullUrl, result.count);
-    result['links'] = links;
+    result = { ...result, ...links };
     return res.json(result);
   } catch (error) /* istanbul ignore next */ {
     logger.error(`getUsers: Error while getting users: ${error}`);
