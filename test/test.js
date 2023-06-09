@@ -549,7 +549,7 @@ describe('UserService', async function () {
       res = await request
         .get(v1BasePath + `/users?$top=${top}&$skip=${skip}`)
         .expect(200);
-      res.body.should.have.property('count', count - skip);
+      res.body.should.have.property('count', count);
       res.body.should.have.property('value');
       res.body.value.should.have.length(top);
 
@@ -557,7 +557,7 @@ describe('UserService', async function () {
       res = await request
         .get(v1BasePath + `/users?$top=13&$skip=7`)
         .expect(200);
-      res.body.should.have.property('count', 13);
+      res.body.should.have.property('count', count);
       res.body.should.have.property('value');
       res.body.value.should.have.length(13);
 
@@ -565,7 +565,7 @@ describe('UserService', async function () {
       res = await request
         .get(v1BasePath + `/users?$top=20&$skip=21`)
         .expect(200);
-      res.body.should.have.property('count', 0);
+      res.body.should.have.property('count', count);
       res.body.should.have.property('value');
       res.body.value.should.have.length(0);
     });
@@ -633,7 +633,7 @@ describe('UserService', async function () {
       res = await request
         .get(v1BasePath + '/users?' + encodeGetParams(params))
         .expect(200);
-      res.body.should.have.property('count', count - 10);
+      res.body.should.have.property('count', count);
       res.body.should.have.property('value');
 
       for (let index = 0; index < 10; index++) {

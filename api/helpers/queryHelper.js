@@ -73,23 +73,56 @@ function transFormProjection(projection) {
 
 function generatePaginationLinks(url, totalDocs) {
   const links = {
-    next: '',
-    previous: '',
-    last: ''
+    first: {
+      href: ''
+    },
+    last: {
+      href: ''
+    },
+    previous: {
+      href: ''
+    },
+    next: {
+      href: ''
+    }
   };
+
+  let hrefFirst = new URL(url);
   let hrefLast = new URL(url);
   let hrefPrevious = new URL(url);
   let hrefNext = new URL(url);
 
-  const top = hrefLast.searchParams.get('$top');
-  const skip = hrefLast.searchParams.get('$skip');
+  const top = parseInt(hrefLast.searchParams.get('$top'));
+  const skip = parseInt(hrefLast.searchParams.get('$skip'));
 
-  // next link
+  // first
+  hrefFirst.searchParams.set('$top', top);
+  hrefFirst.searchParams.set('$skip', 0);
+  links.first.href = hrefFirst.href;
+
+  // last --  fix needed for the edge cases
+  let skipForLastLink = 0;
+  let quotient = Math.floor(totalDocs / top);
+  let remainder = totalDocs % top;
+  if (remainder == 0) {
+    skipForLastLink = (quotient - 1) * top;
+  } else {
+    skipForLastLink = quotient * top;
+  }
+  hrefLast.searchParams.set('$top', top);
+  hrefLast.searchParams.set('$skip', skipForLastLink);
+  links.last.href = hrefLast.href;
+
+  // next link -- fix needed for the edge cases
   hrefNext.searchParams.set('$top', top);
   hrefNext.searchParams.set('$skip', skip + top);
-  links.next = hrefNext.href;
+  links.next.href = hrefNext.href;
 
-  // previous link
-  // only top and skip will change
-  // next = top=top, skip = skip + top, last = totalDocs - (totalDocs%top)
+  // previous --  fix needed for the edge cases
+  hrefPrevious.searchParams.set('$top', top);
+  let skipForPreviousLink = skip > top ? skip - top : 0; // for the first page
+  hrefPrevious.searchParams.set('$skip', skipForPreviousLink);
+  links.previous.href = hrefPrevious.href;
+
+  return links;
 }

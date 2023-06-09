@@ -2,6 +2,7 @@ const service = require('../services/service');
 const logger = require('../../logger')(__filename);
 
 const middlewares = require('../helpers/middlewares');
+const queryHelper = require('../helpers/queryHelper');
 
 module.exports = {
   getUser: middlewares.controllerMiddleware(getUser),
@@ -69,6 +70,7 @@ async function deleteUser(req, res) {
 
 async function getUsers(req, res) {
   try {
+    let fullUrl = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
     const result = await service.getUsers(
       req.query.$top,
       req.query.$skip,
@@ -76,6 +78,8 @@ async function getUsers(req, res) {
       req.query.$sortBy,
       req.query.$projection
     );
+    const links = queryHelper.generatePaginationLinks(fullUrl, result.count);
+    result['links'] = links;
     return res.json(result);
   } catch (error) /* istanbul ignore next */ {
     logger.error(`getUsers: Error while getting users: ${error}`);

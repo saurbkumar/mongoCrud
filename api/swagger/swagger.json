@@ -503,7 +503,7 @@
       },
       "Users": {
         "type": "object",
-        "required": ["count", "value", "links"],
+        "required": ["count", "value", "first", "last", "previous", "next"],
         "properties": {
           "count": {
             "type": "integer",
@@ -522,25 +522,51 @@
               "required": ["id", "name", "address", "age"]
             }
           },
-          "links": {
+          "first": {
             "type": "object",
-            "required": ["next", "previous", "last"],
-            "description": "pagination links",
+            "description": "pagination records first link",
+            "required": ["href"],
             "properties": {
-              "next": {
+              "href": {
                 "type": "string",
-                "description": "paginated data next link",
-                "example": "/users?$top=10&$skip=0"
-              },
-              "previous": {
+                "description": "paginated data link",
+                "example": "http://localhost:3000/v1/users?$top=10&$skip=0"
+              }
+            }
+          },
+          "last": {
+            "type": "object",
+            "description": "pagination records last link",
+            "required": ["href"],
+            "properties": {
+              "href": {
                 "type": "string",
-                "description": "paginated previous next link",
-                "example": "/users?$top=10&$skip=0"
-              },
-              "last": {
+                "description": "paginated data link",
+                "example": "http://localhost:3000/v1/users?$top=10&$skip=20"
+              }
+            }
+          },
+          "previous": {
+            "type": "object",
+            "description": "pagination records previous link",
+            "required": ["href"],
+            "properties": {
+              "href": {
                 "type": "string",
-                "description": "paginated last next link",
-                "example": "/users?$top=10&$skip=10"
+                "description": "paginated data link",
+                "example": "http://localhost:3000/v1/users?$top=10&$skip=0"
+              }
+            }
+          },
+          "next": {
+            "type": "object",
+            "description": "pagination records next link",
+            "required": ["href"],
+            "properties": {
+              "href": {
+                "type": "string",
+                "description": "paginated data link",
+                "example": "http://localhost:3000/v1/users?$top=10&$skip=10"
               }
             }
           }

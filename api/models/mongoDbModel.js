@@ -109,12 +109,8 @@ async function getUsers(top, skip, filter, sortBy, projection) {
     .select(projectionConfig);
 
   // move this to pagination
-  let totalDoc = await User.countDocuments(query).lean(); // find better way to do this, figure out in single query
-  if (totalDoc - skip > 0) {
-    totalDoc = totalDoc - skip;
-  } else {
-    totalDoc = 0;
-  }
+  let totalDoc = await User.countDocuments(query).lean(); // potential sol : use $facet
+
   return {
     count: totalDoc,
     value: result
