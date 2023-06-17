@@ -27,8 +27,10 @@ async function getLive() {
   }
   let result = false;
   try {
-    await Promise.all(promises); // fail fast behaviour
-    result = true;
+    const livenessValues = await Promise.all(promises); // fail fast behaviour
+    if (livenessValues.every((liveValue) => liveValue === true)) {
+      result = true;
+    }
   } catch (error) {
     logger.error(`getLive: Error in liveness:`, error);
   }

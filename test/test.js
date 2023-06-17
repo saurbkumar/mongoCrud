@@ -117,6 +117,15 @@ describe('UserService', async function () {
       }
       return [[serivceName, someServiceReadyMock]];
     }
+
+    function mockLiveComp(serviceName, status) {
+      async function someServiceLiveMock() {
+        return status;
+      }
+
+      return [[serviceName, someServiceLiveMock]];
+    }
+
     it('FailReadyCheckWhenDependentComponentFails', async function () {
       let componentStub = sinon.stub(healthModel, 'getComponents');
       // sinon mock
@@ -188,10 +197,64 @@ describe('UserService', async function () {
       componentStub.restore();
     });
 
-    it('LiveCheckWhenDependentPassed', async function () {});
+    it('FailLiveCheckWhenDependentComponentFails', async function () {
+      let componentStub = sinon.stub(healthModel, 'getComponents');
+      // sinon mock
+      componentStub.returns(
+        createHealthComponentFunction(
+          mockLiveComp('service1', false),
+          dummyMockReadyComp()
+        )
+      );
+      await request.get(v1BasePath + '/app/live').expect(503);
 
-    it('ReadyCheckWhenDependentComponentFails', async function () {});
-    it('ReadyCheckWhenDependentPassed', async function () {});
+      // clear
+      healthService.clearHealthComponents(); // need to reset the reference
+
+      // fail live when one component pass and other fail
+      const liveMockComponents = [
+        ...mockLiveComp('service1', false),
+        ...mockLiveComp('service2', true)
+      ];
+      // sinon mock
+      componentStub.returns(
+        createHealthComponentFunction(liveMockComponents, dummyMockReadyComp())
+      );
+      await request.get(v1BasePath + '/app/live').expect(503);
+      // clear
+      healthService.clearHealthComponents(); // need to reset the reference
+      componentStub.restore();
+    });
+
+    it('PassLiveCheckNoDependency', async function () {
+      let componentStub = sinon.stub(healthModel, 'getComponents');
+      // sinon mock
+      componentStub.returns(
+        createHealthComponentFunction(dummyMockLiveComp(), dummyMockReadyComp())
+      );
+      let res = await request.get(v1BasePath + '/app/live').expect(200);
+
+      res.body.should.have.property('status', 'ok');
+      // clear
+      healthService.clearHealthComponents(); // need to reset the reference
+      componentStub.restore();
+    });
+
+    it('PassLiveCheckWhenAllDependencyPass', async function () {
+      let componentStub = sinon.stub(healthModel, 'getComponents');
+      const liveMockComponents = [
+        ...mockLiveComp('service1', true),
+        ...mockLiveComp('service2', true)
+      ];
+      // sinon mock
+      componentStub.returns(
+        createHealthComponentFunction(liveMockComponents, dummyMockReadyComp())
+      );
+      await request.get(v1BasePath + '/app/live').expect(200);
+      // clear
+      healthService.clearHealthComponents(); // need to reset the reference
+      componentStub.restore();
+    });
   });
 
   describe('CreateUpdateDelete', async function () {
