@@ -3,21 +3,21 @@ const healthModel = require('../models/healthModel');
 
 module.exports = {
   getLive: getLive,
-  getReady: getReady
+  getReady: getReady,
+  clearHealthComponents: clearHealthComponents
 };
-const healthComponents = healthModel.getComponents();
-let liveComponents = [];
-let readyComponents = [];
-for (let component of healthComponents) {
-  if (component.live) {
-    liveComponents.push([component.name, component.live]);
+
+let healthComponents = null;
+function lazyLoadHealthComponents() {
+  if (healthComponents == null) {
+    healthComponents = healthModel.getComponents();
   }
-  if (component.ready) {
-    readyComponents.push([component.name, component.ready]);
-  }
+  return healthComponents;
 }
 
 async function getLive() {
+  const healthComponents = lazyLoadHealthComponents();
+  const liveComponents = healthComponents.getLiveComponents();
   if (liveComponents.length == 0) {
     return true;
   }
@@ -36,6 +36,9 @@ async function getLive() {
 }
 
 async function getReady() {
+  const healthComponents = lazyLoadHealthComponents();
+  const readyComponents = healthComponents.getReadyComponents();
+
   let result = {
     status: 'App is healthy',
     components: [],
@@ -68,4 +71,9 @@ async function getReady() {
     logger.error(`getLive: Error in liveness:`, error);
   }
   return result;
+}
+
+// This function is just for testing
+function clearHealthComponents() {
+  healthComponents = null;
 }

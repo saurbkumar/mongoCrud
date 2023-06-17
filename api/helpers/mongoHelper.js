@@ -69,9 +69,13 @@ async function ready() {
     } connected, current database state ${DBstate}`
   };
 }
+async function live() {
+  return true;
+}
 
 module.exports = {
   connect: connect,
   close: close,
-  ready: ready
+  ready: ready,
+  live: live
 };

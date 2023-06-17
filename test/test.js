@@ -1,4 +1,7 @@
 const config = require('config');
+require('should');
+const sinon = require('sinon');
+
 // modify config for unit test
 config.Database = config.Unittest.Database;
 
@@ -7,10 +10,13 @@ const supertest = require('supertest');
 const shortId = require('../api/helpers/shortId');
 const logger = require('../logger');
 logger('unittest.log').switchToFile();
-require('should');
+
 const v1BasePath = '/v1/user-service';
 
 const queryHelper = require('../api/helpers/queryHelper');
+// import mogohelper at the top, so that it can be stub
+const healthModel = require('../api/models/healthModel');
+const healthService = require('../api/services/healthService');
 
 describe('UserService', async function () {
   let request;
@@ -81,12 +87,113 @@ describe('UserService', async function () {
   }
 
   describe('AppHealthTest', async function () {
-    it('LiveCheckWhenDependentComponentFails', async function () {});
+    function createHealthComponentFunction(
+      mockLiveComponents,
+      mockReadyComponent
+    ) {
+      return {
+        getLiveComponents: function () {
+          return mockLiveComponents;
+        },
+        getReadyComponents: function () {
+          return mockReadyComponent;
+        }
+      };
+    }
+    function dummyMockLiveComp() {
+      return [];
+    }
+    function dummyMockReadyComp() {
+      return [];
+    }
+    function mockReadyComp(serivceName, status) {
+      async function someServiceReadyMock() {
+        return {
+          status: status,
+          message: `service ${
+            status ? '' : 'not'
+          } connected, current service state ${status}`
+        };
+      }
+      return [[serivceName, someServiceReadyMock]];
+    }
+    it('FailReadyCheckWhenDependentComponentFails', async function () {
+      let componentStub = sinon.stub(healthModel, 'getComponents');
+      // sinon mock
+      componentStub.returns(
+        createHealthComponentFunction(
+          dummyMockLiveComp(),
+          mockReadyComp('service1', false)
+        )
+      );
+      let res = await request.get(v1BasePath + '/app/ready').expect(503);
+
+      res.body.should.have.property('status', 'App is not healthy');
+      res.body.should.have.property('components');
+      res.body.components.length.should.be.eql(1);
+
+      // clear
+      healthService.clearHealthComponents(); // need to reset the reference
+
+      // fail ready when one component pass and other fail
+      const readyMockComponents = [
+        ...mockReadyComp('service1', false),
+        ...mockReadyComp('service2', true)
+      ];
+      // sinon mock
+      componentStub.returns(
+        createHealthComponentFunction(dummyMockLiveComp(), readyMockComponents)
+      );
+      res = await request.get(v1BasePath + '/app/ready').expect(503);
+      res.body.should.have.property('status', 'App is not healthy');
+      res.body.should.have.property('components');
+      res.body.components.length.should.be.eql(2);
+      // clear
+      healthService.clearHealthComponents(); // need to reset the reference
+      componentStub.restore();
+    });
+
+    it('PassReadyCheckNoDependency', async function () {
+      let componentStub = sinon.stub(healthModel, 'getComponents');
+      // sinon mock
+      componentStub.returns(
+        createHealthComponentFunction(dummyMockLiveComp(), dummyMockReadyComp())
+      );
+      let res = await request.get(v1BasePath + '/app/ready').expect(200);
+
+      res.body.should.have.property('status', 'App is healthy');
+      res.body.should.have.property('components');
+      res.body.components.length.should.be.eql(0);
+      // clear
+      healthService.clearHealthComponents(); // need to reset the reference
+      componentStub.restore();
+    });
+
+    it('PassReadyCheckWhenAllDependencyPass', async function () {
+      let componentStub = sinon.stub(healthModel, 'getComponents');
+      const readyMockComponents = [
+        ...mockReadyComp('service1', true),
+        ...mockReadyComp('service2', true)
+      ];
+      // sinon mock
+      componentStub.returns(
+        createHealthComponentFunction(dummyMockLiveComp(), readyMockComponents)
+      );
+      let res = await request.get(v1BasePath + '/app/ready').expect(200);
+      res.body.should.have.property('status', 'App is healthy');
+      res.body.should.have.property('components');
+      res.body.components.length.should.be.eql(2);
+      // clear
+      healthService.clearHealthComponents(); // need to reset the reference
+      componentStub.restore();
+    });
+
     it('LiveCheckWhenDependentPassed', async function () {});
 
     it('ReadyCheckWhenDependentComponentFails', async function () {});
     it('ReadyCheckWhenDependentPassed', async function () {});
   });
+
   describe('CreateUpdateDelete', async function () {
     describe('GetUsers', async function () {
       it('FailAdditionalQueryParameter', async function () {
