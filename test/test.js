@@ -1210,7 +1210,7 @@ describe('UserService', async function () {
       );
       isQueryParamEqual.should.eql(true);
     };
-    it.only('CheckPaginationLinkObjects', async function () {
+    it('CheckPaginationLinkObjects', async function () {
       // top is 10 and skip is 0 in the url
       let url =
         'http://localhost:3000/v1/user-service/users?%24top=10&%24skip=0&%24filter=age%20%3E%20%2710%27&%24sortBy=%2Bage%20%20%20%2Bname&%24projection=-name%20%20%20-age';
