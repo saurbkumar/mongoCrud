@@ -41,9 +41,8 @@ Type `npm start`. Few lines will comes up and then go to ["http://localhost:3000
 ## Roadmap
 
 - [ ] Add correlationId to every log
-- [ ] Add pagination links and combined test cases like of filter and paginations
 - [ ] Add support for the virtuals
-- [ ] Add live and ready end point
+- [ ] Add SSE support.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
