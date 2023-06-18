@@ -92,8 +92,8 @@ async function deleteUser(id) {
   return true;
 }
 async function getUsers(top, skip, filter, sortBy, projection) {
-  const sortConfig = queryHelper.transformMogoSortBy(sortBy);
-  const filterConfig = queryHelper.transformMongoQuery(filter);
+  const sortConfig = queryHelper.transformSortBy(sortBy);
+  const filterConfig = queryHelper.transformQuery(filter);
   const projectionConfig = queryHelper.transFormProjection(projection);
   logger.info(
     `getUsers: getting users, top: ${top}, skip: ${skip}, filter: ${filter}, sortBy: ${sortConfig}, projection: ${projection}`
@@ -118,7 +118,7 @@ async function getUsers(top, skip, filter, sortBy, projection) {
 }
 
 async function deleteUsers(filter) {
-  const filterConfig = queryHelper.transformMongoQuery(filter);
+  const filterConfig = queryHelper.transformQuery(filter);
   logger.info(
     `deleteUsers: removing all users, for query: ${JSON.stringify(
       filterConfig

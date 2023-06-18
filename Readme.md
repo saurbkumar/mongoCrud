@@ -139,13 +139,13 @@ To control what fields you can sort, go to `/api/helpers/queryHooks.js` and insi
 Documents can be filtered using the parameter `$filter` by writing SQL-like statements. For example, to get all documents where the age is in ['23', '45'] and address = 'address1', the parameter `$filter` should be like `age in ( '23', '45') and address = 'address1'`.  
 Here one thing to note down is the quotes (`''`) around all the values, these quotes are always required, for every value. Right now `integer`, `string`, `boolean`, and `date` data types are supported. To add more data type support, see `/api/helpers/mongoFilter.pegjs` file. For more examples see filter test cases.  
 
-To control what fields you can filter, go to `/api/helpers/queryHooks.js` and inside the `mapping` function modify the `queryFiels` keys. Assuming, you want to enable `name` and `age` filter, then the queryFiels in the mapping function will be like:
+To control what fields you can filter, go to `/api/helpers/queryHooks.js` and inside the `mapping` function modify the `queryFields` keys. Assuming, you want to enable `name` and `age` filter, then the queryFields in the mapping function will be like:
 
 ```
   ...
   function mapping() {
     ...
-      queryFiels: [
+      queryFields: [
         { name: 'name', type: 'string' },
         { name: 'age', type: 'int' }
       ],

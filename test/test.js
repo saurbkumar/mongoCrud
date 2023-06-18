@@ -1132,7 +1132,7 @@ describe('UserService', async function () {
     function testParserLanguage(expression) {
       let parsedExpression;
       try {
-        parsedExpression = queryHelper.transformMongoQuery(expression);
+        parsedExpression = queryHelper.transformQuery(expression);
       } catch (error) {
         parsedExpression = '';
       }
