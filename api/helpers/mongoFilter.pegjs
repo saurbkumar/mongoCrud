@@ -5,7 +5,7 @@
   const queryMapping = queryHooks.mapping();
   const allowedFieldsMap = {};
   const virtuals = {};
-  queryMapping.queryFiels.forEach((element) => {
+  queryMapping.queryFields.forEach((element) => {
     allowedFieldsMap[element.name] = element.type;
   });
   queryMapping.virtuals.forEach((element) => {
