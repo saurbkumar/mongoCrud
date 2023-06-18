@@ -119,7 +119,7 @@ function generatePaginationLinks(url, totalDocs) {
   queryParamMapFirst['$skip'] = 0;
   links.first.href = _makeURL(basePath, queryParamMapFirst);
 
-  // last --  fix needed for the edge cases
+  // last
   let skipForLastLink = 0;
   let quotient = Math.floor(totalDocs / top);
   let remainder = totalDocs % top;
@@ -132,12 +132,12 @@ function generatePaginationLinks(url, totalDocs) {
   queryParamMapLast['$skip'] = skipForLastLink;
   links.last.href = _makeURL(basePath, queryParamMapLast);
 
-  // next link -- fix needed for the edge cases
+  // next link
   queryParamMapNext['$top'] = top;
   queryParamMapNext['$skip'] = skip + top;
   links.next.href = _makeURL(basePath, queryParamMapNext);
 
-  // previous --  fix needed for the edge cases
+  // previous
   queryParamMapPrevious['$top'] = top;
   let skipForPreviousLink = skip > top ? skip - top : 0; // for the first page
   queryParamMapPrevious['$skip'] = skipForPreviousLink;
