@@ -1,3 +1,5 @@
+const querystring = require('querystring');
+
 const queryHooks = require('../helpers/queryHooks');
 const logger = require('../../logger')(__filename);
 
@@ -17,25 +19,29 @@ function transformMogoSortBy(sortBy) {
   if (!sortBy) {
     return sortConfig;
   }
-  sortBy.split(' ').forEach((field) => {
-    const sortDirection = field.substring(0, 1);
-    const sortfield = field.substring(1);
-    if (sortDirection != '+' && sortDirection != '-') {
-      throw {
-        message: `${sortDirection} direction is not allowed. Bad request`,
-        statusCode: 400
-      };
-    }
 
-    if (!allowedSortFields.has(sortfield)) {
-      throw {
-        message: `${sortfield} is not allowed for the sorting. Bad request`,
-        statusCode: 400
-      };
-    }
+  sortBy
+    .split(' ')
+    .filter((field) => field) // remove addtional spaces, all the spaces will be false
+    .forEach((field) => {
+      const sortDirection = field.substring(0, 1);
+      const sortfield = field.substring(1);
+      if (sortDirection != '+' && sortDirection != '-') {
+        throw {
+          message: `${sortDirection} direction is not allowed. Bad request`,
+          statusCode: 400
+        };
+      }
 
-    sortConfig[sortfield] = sortDirection === '+' ? 'asc' : 'desc';
-  });
+      if (!allowedSortFields.has(sortfield)) {
+        throw {
+          message: `${sortfield} is not allowed for the sorting. Bad request`,
+          statusCode: 400
+        };
+      }
+
+      sortConfig[sortfield] = sortDirection === '+' ? 'asc' : 'desc';
+    });
   return sortConfig;
 }
 
@@ -59,18 +65,26 @@ function transFormProjection(projection) {
   if (!projection) {
     return '';
   }
-  projection.split(' ').forEach((field) => {
-    const projectionType = field.substring(0, 1);
-    if (projectionType != '-') {
-      throw {
-        message: `${projectionType} is not allowed. only '-' is allowed Bad request`,
-        statusCode: 400
-      };
-    }
-  });
+  projection
+    .split(' ')
+    .filter((field) => field) // remove addtional spaces, all the spaces will be false
+    .forEach((field) => {
+      const projectionType = field.substring(0, 1);
+      if (projectionType != '-') {
+        throw {
+          message: `${projectionType} is not allowed. only '-' is allowed Bad request`,
+          statusCode: 400
+        };
+      }
+    });
   return projection;
 }
-
+/**
+ *
+ * @param {*} url Encoded URL string
+ * @param {*} totalDocs total number of docs
+ * @returns links object
+ */
 function generatePaginationLinks(url, totalDocs) {
   const links = {
     first: {
@@ -86,19 +100,24 @@ function generatePaginationLinks(url, totalDocs) {
       href: ''
     }
   };
+  const _makeURL = function (basePath, queryParamMap) {
+    return `${basePath}?${querystring.stringify(queryParamMap)}`;
+  };
+  let [basePath, queryParam] = url.split('?');
 
-  let hrefFirst = new URL(url);
-  let hrefLast = new URL(url);
-  let hrefPrevious = new URL(url);
-  let hrefNext = new URL(url);
+  const queryParamMap = querystring.parse(queryParam);
+  let queryParamMapFirst = queryParamMap;
+  let queryParamMapLast = queryParamMap;
+  let queryParamMapNext = queryParamMap;
+  let queryParamMapPrevious = queryParamMap;
 
-  const top = parseInt(hrefLast.searchParams.get('$top'));
-  const skip = parseInt(hrefLast.searchParams.get('$skip'));
+  const top = parseInt(queryParamMap['$top']);
+  const skip = parseInt(queryParamMap['$skip']);
 
   // first
-  hrefFirst.searchParams.set('$top', top);
-  hrefFirst.searchParams.set('$skip', 0);
-  links.first.href = hrefFirst.href;
+  queryParamMapFirst['$top'] = top;
+  queryParamMapFirst['$skip'] = 0;
+  links.first.href = _makeURL(basePath, queryParamMapFirst);
 
   // last --  fix needed for the edge cases
   let skipForLastLink = 0;
@@ -109,20 +128,20 @@ function generatePaginationLinks(url, totalDocs) {
   } else {
     skipForLastLink = quotient * top;
   }
-  hrefLast.searchParams.set('$top', top);
-  hrefLast.searchParams.set('$skip', skipForLastLink);
-  links.last.href = hrefLast.href;
+  queryParamMapLast['$top'] = top;
+  queryParamMapLast['$skip'] = skipForLastLink;
+  links.last.href = _makeURL(basePath, queryParamMapLast);
 
   // next link -- fix needed for the edge cases
-  hrefNext.searchParams.set('$top', top);
-  hrefNext.searchParams.set('$skip', skip + top);
-  links.next.href = hrefNext.href;
+  queryParamMapNext['$top'] = top;
+  queryParamMapNext['$skip'] = skip + top;
+  links.next.href = _makeURL(basePath, queryParamMapNext);
 
   // previous --  fix needed for the edge cases
-  hrefPrevious.searchParams.set('$top', top);
+  queryParamMapPrevious['$top'] = top;
   let skipForPreviousLink = skip > top ? skip - top : 0; // for the first page
-  hrefPrevious.searchParams.set('$skip', skipForPreviousLink);
-  links.previous.href = hrefPrevious.href;
+  queryParamMapPrevious['$skip'] = skipForPreviousLink;
+  links.previous.href = _makeURL(basePath, queryParamMapPrevious);
 
   return links;
 }

@@ -1,7 +1,8 @@
 const config = require('config');
 require('should');
 const sinon = require('sinon');
-
+const querystring = require('querystring');
+const util = require('util');
 // modify config for unit test
 config.Database = config.Unittest.Database;
 
@@ -14,7 +15,6 @@ logger('unittest.log').switchToFile();
 const v1BasePath = '/v1/user-service';
 
 const queryHelper = require('../api/helpers/queryHelper');
-// import mogohelper at the top, so that it can be stub
 const healthModel = require('../api/models/healthModel');
 const healthService = require('../api/services/healthService');
 
@@ -86,46 +86,59 @@ describe('UserService', async function () {
     await Promise.all(promises);
   }
 
-  describe('AppHealthTest', async function () {
-    function createHealthComponentFunction(
-      mockLiveComponents,
-      mockReadyComponent
-    ) {
+  function createHealthComponentFunction(
+    mockLiveComponents,
+    mockReadyComponent
+  ) {
+    return {
+      getLiveComponents: function () {
+        return mockLiveComponents;
+      },
+      getReadyComponents: function () {
+        return mockReadyComponent;
+      }
+    };
+  }
+
+  function dummyMockLiveComp() {
+    return [];
+  }
+
+  function dummyMockReadyComp() {
+    return [];
+  }
+
+  function mockReadyComp(serivceName, status) {
+    async function someServiceReadyMock() {
       return {
-        getLiveComponents: function () {
-          return mockLiveComponents;
-        },
-        getReadyComponents: function () {
-          return mockReadyComponent;
-        }
+        status: status,
+        message: `service ${
+          status ? '' : 'not'
+        } connected, current service state ${status}`
       };
     }
-    function dummyMockLiveComp() {
-      return [];
-    }
-    function dummyMockReadyComp() {
-      return [];
-    }
-    function mockReadyComp(serivceName, status) {
-      async function someServiceReadyMock() {
-        return {
-          status: status,
-          message: `service ${
-            status ? '' : 'not'
-          } connected, current service state ${status}`
-        };
-      }
-      return [[serivceName, someServiceReadyMock]];
+    return [[serivceName, someServiceReadyMock]];
+  }
+
+  function mockLiveComp(serviceName, status) {
+    async function someServiceLiveMock() {
+      return status;
     }
 
-    function mockLiveComp(serviceName, status) {
-      async function someServiceLiveMock() {
-        return status;
-      }
+    return [[serviceName, someServiceLiveMock]];
+  }
 
-      return [[serviceName, someServiceLiveMock]];
+  function checkData(res, field, targetValues) {
+    // gather all vales
+    const data = new Set(res.body.value.map((user) => user[`${field}`]));
+    // check all value
+    for (let val of targetValues) {
+      data.has(val).should.eql(true);
     }
+    data.size.should.eql(targetValues.length);
+  }
 
+  describe('AppHealthTest', async function () {
     it('FailReadyCheckWhenDependentComponentFails', async function () {
       let componentStub = sinon.stub(healthModel, 'getComponents');
       // sinon mock
@@ -769,6 +782,28 @@ describe('UserService', async function () {
         .expect(400);
     });
 
+    it('PassSortUsersWithAdditionalSpaces', async function () {
+      // create bulk users
+      const count = 20;
+      await bulkCreateUsers(count);
+      let params = {
+        $sortBy: ' +age ',
+        $top: count
+      };
+      await request
+        .get(v1BasePath + '/users?' + encodeGetParams(params))
+        .expect(200);
+
+      params = {
+        $sortBy: ' +age  +name ',
+        $top: count
+      };
+
+      await request
+        .get(v1BasePath + '/users?' + encodeGetParams(params))
+        .expect(200);
+    });
+
     it('SortUsers', async function () {
       // create bulk users
       const count = 20;
@@ -880,18 +915,35 @@ describe('UserService', async function () {
         user.should.have.property('updatedAt');
       });
     });
+
+    it('PassProjectionWithAdditionalSpacesTest', async function () {
+      // create a users
+      const count = 4;
+      await bulkCreateUsers(count);
+      // query users
+      let params = {
+        $projection: ` -age   -createdAt `,
+        $top: count
+      };
+
+      let res = await request
+        .get(v1BasePath + '/users?' + encodeGetParams(params))
+        .expect(200);
+      res.body.should.have.property('count', count);
+      res.body.should.have.property('value');
+      res.body.value.length.should.eql(count);
+      res.body.value.forEach((user) => {
+        user.should.not.have.property('age');
+        user.should.not.have.property('createdAt');
+        user.should.have.property('name');
+        user.should.have.property('address');
+        user.should.have.property('id');
+        user.should.have.property('updatedAt');
+      });
+    });
   });
 
   describe('FilterTest', async function () {
-    function checkData(res, field, targetValues) {
-      // gather all vales
-      const data = new Set(res.body.value.map((user) => user[`${field}`]));
-      // check all value
-      for (let val of targetValues) {
-        data.has(val).should.eql(true);
-      }
-      data.size.should.eql(targetValues.length);
-    }
     it('FilterGetTestFailBadQuery', async function () {
       // create bulk users
       const count = 20;
@@ -1146,7 +1198,64 @@ describe('UserService', async function () {
   });
 
   describe('PaginationLinksTest', async function () {
-    it('linksWhenTopIsDivisibleByTotalDocs', async function () {});
-    it('linksWhenTopIsNotDivisibleByTotalDocs', async function () {});
+    const _checkURL = function (expectedURL, actualURL) {
+      let [expectedBasePath, expectedQueryParam] = expectedURL.split('?');
+      let [actualBasePath, actualQueryParam] = actualURL.split('?');
+      expectedBasePath.should.eql(actualBasePath);
+      let expectedQueryParamMap = querystring.parse(expectedQueryParam);
+      let actualQueryParamMap = querystring.parse(actualQueryParam);
+      const isQueryParamEqual = util.isDeepStrictEqual(
+        expectedQueryParamMap,
+        actualQueryParamMap
+      );
+      isQueryParamEqual.should.eql(true);
+    };
+    it.only('CheckPaginationLinkObjects', async function () {
+      // top is 10 and skip is 0 in the url
+      let url =
+        'http://localhost:3000/v1/user-service/users?%24top=10&%24skip=0&%24filter=age%20%3E%20%2710%27&%24sortBy=%2Bage%20%20%20%2Bname&%24projection=-name%20%20%20-age';
+      let links = queryHelper.generatePaginationLinks(url, 30);
+
+      links.should.have.propertyByPath('first', 'href');
+      _checkURL(links.first.href, url);
+
+      links.should.have.propertyByPath('last', 'href');
+      _checkURL(
+        links.last.href,
+        'http://localhost:3000/v1/user-service/users?%24top=10&%24skip=20&%24filter=age%20%3E%20%2710%27&%24sortBy=%2Bage%20%20%20%2Bname&%24projection=-name%20%20%20-age'
+      );
+
+      links.should.have.propertyByPath('previous', 'href');
+      _checkURL(
+        links.previous.href,
+        'http://localhost:3000/v1/user-service/users?%24top=10&%24skip=0&%24filter=age%20%3E%20%2710%27&%24sortBy=%2Bage%20%20%20%2Bname&%24projection=-name%20%20%20-age'
+      );
+
+      links.should.have.propertyByPath('next', 'href');
+      _checkURL(
+        links.next.href,
+        'http://localhost:3000/v1/user-service/users?%24top=10&%24skip=10&%24filter=age%20%3E%20%2710%27&%24sortBy=%2Bage%20%20%20%2Bname&%24projection=-name%20%20%20-age'
+      );
+
+      // check next pagination links
+      const nextLink = links.next.href;
+      const lastLink = links.last.href;
+      links = queryHelper.generatePaginationLinks(nextLink, 30);
+
+      links.should.have.propertyByPath('first', 'href');
+      _checkURL(links.first.href, url);
+
+      links.should.have.propertyByPath('last', 'href');
+      _checkURL(
+        links.last.href,
+        'http://localhost:3000/v1/user-service/users?%24top=10&%24skip=20&%24filter=age%20%3E%20%2710%27&%24sortBy=%2Bage%20%20%20%2Bname&%24projection=-name%20%20%20-age'
+      );
+
+      links.should.have.propertyByPath('previous', 'href');
+      _checkURL(links.previous.href, url);
+
+      links.should.have.propertyByPath('next', 'href');
+      _checkURL(links.next.href, lastLink);
+    });
   });
 });
