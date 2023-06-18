@@ -1,4 +1,8 @@
 const config = require('config');
+require('should');
+const sinon = require('sinon');
+const querystring = require('querystring');
+const util = require('util');
 // modify config for unit test
 config.Database = config.Unittest.Database;
 
@@ -7,10 +11,12 @@ const supertest = require('supertest');
 const shortId = require('../api/helpers/shortId');
 const logger = require('../logger');
 logger('unittest.log').switchToFile();
-require('should');
+
 const v1BasePath = '/v1/user-service';
 
 const queryHelper = require('../api/helpers/queryHelper');
+const healthModel = require('../api/models/healthModel');
+const healthService = require('../api/services/healthService');
 
 describe('UserService', async function () {
   let request;
@@ -80,6 +86,190 @@ describe('UserService', async function () {
     await Promise.all(promises);
   }
 
+  function createHealthComponentFunction(
+    mockLiveComponents,
+    mockReadyComponent
+  ) {
+    return {
+      getLiveComponents: function () {
+        return mockLiveComponents;
+      },
+      getReadyComponents: function () {
+        return mockReadyComponent;
+      }
+    };
+  }
+
+  function dummyMockLiveComp() {
+    return [];
+  }
+
+  function dummyMockReadyComp() {
+    return [];
+  }
+
+  function mockReadyComp(serivceName, status) {
+    async function someServiceReadyMock() {
+      return {
+        status: status,
+        message: `service ${
+          status ? '' : 'not'
+        } connected, current service state ${status}`
+      };
+    }
+    return [[serivceName, someServiceReadyMock]];
+  }
+
+  function mockLiveComp(serviceName, status) {
+    async function someServiceLiveMock() {
+      return status;
+    }
+
+    return [[serviceName, someServiceLiveMock]];
+  }
+
+  function checkData(res, field, targetValues) {
+    // gather all vales
+    const data = new Set(res.body.value.map((user) => user[`${field}`]));
+    // check all value
+    for (let val of targetValues) {
+      data.has(val).should.eql(true);
+    }
+    data.size.should.eql(targetValues.length);
+  }
+
+  describe('AppHealthTest', async function () {
+    it('FailReadyCheckWhenDependentComponentFails', async function () {
+      let componentStub = sinon.stub(healthModel, 'getComponents');
+      // sinon mock
+      componentStub.returns(
+        createHealthComponentFunction(
+          dummyMockLiveComp(),
+          mockReadyComp('service1', false)
+        )
+      );
+      let res = await request.get(v1BasePath + '/app/ready').expect(503);
+
+      res.body.should.have.property('status', 'App is not healthy');
+      res.body.should.have.property('components');
+      res.body.components.length.should.be.eql(1);
+
+      // clear
+      healthService.clearHealthComponents(); // need to reset the reference
+
+      // fail ready when one component pass and other fail
+      const readyMockComponents = [
+        ...mockReadyComp('service1', false),
+        ...mockReadyComp('service2', true)
+      ];
+      // sinon mock
+      componentStub.returns(
+        createHealthComponentFunction(dummyMockLiveComp(), readyMockComponents)
+      );
+      res = await request.get(v1BasePath + '/app/ready').expect(503);
+      res.body.should.have.property('status', 'App is not healthy');
+      res.body.should.have.property('components');
+      res.body.components.length.should.be.eql(2);
+      // clear
+      healthService.clearHealthComponents(); // need to reset the reference
+      componentStub.restore();
+    });
+
+    it('PassReadyCheckNoDependency', async function () {
+      let componentStub = sinon.stub(healthModel, 'getComponents');
+      // sinon mock
+      componentStub.returns(
+        createHealthComponentFunction(dummyMockLiveComp(), dummyMockReadyComp())
+      );
+      let res = await request.get(v1BasePath + '/app/ready').expect(200);
+
+      res.body.should.have.property('status', 'App is healthy');
+      res.body.should.have.property('components');
+      res.body.components.length.should.be.eql(0);
+      // clear
+      healthService.clearHealthComponents(); // need to reset the reference
+      componentStub.restore();
+    });
+
+    it('PassReadyCheckWhenAllDependencyPass', async function () {
+      let componentStub = sinon.stub(healthModel, 'getComponents');
+      const readyMockComponents = [
+        ...mockReadyComp('service1', true),
+        ...mockReadyComp('service2', true)
+      ];
+      // sinon mock
+      componentStub.returns(
+        createHealthComponentFunction(dummyMockLiveComp(), readyMockComponents)
+      );
+      let res = await request.get(v1BasePath + '/app/ready').expect(200);
+      res.body.should.have.property('status', 'App is healthy');
+      res.body.should.have.property('components');
+      res.body.components.length.should.be.eql(2);
+      // clear
+      healthService.clearHealthComponents(); // need to reset the reference
+      componentStub.restore();
+    });
+
+    it('FailLiveCheckWhenDependentComponentFails', async function () {
+      let componentStub = sinon.stub(healthModel, 'getComponents');
+      // sinon mock
+      componentStub.returns(
+        createHealthComponentFunction(
+          mockLiveComp('service1', false),
+          dummyMockReadyComp()
+        )
+      );
+      await request.get(v1BasePath + '/app/live').expect(503);
+
+      // clear
+      healthService.clearHealthComponents(); // need to reset the reference
+
+      // fail live when one component pass and other fail
+      const liveMockComponents = [
+        ...mockLiveComp('service1', false),
+        ...mockLiveComp('service2', true)
+      ];
+      // sinon mock
+      componentStub.returns(
+        createHealthComponentFunction(liveMockComponents, dummyMockReadyComp())
+      );
+      await request.get(v1BasePath + '/app/live').expect(503);
+      // clear
+      healthService.clearHealthComponents(); // need to reset the reference
+      componentStub.restore();
+    });
+
+    it('PassLiveCheckNoDependency', async function () {
+      let componentStub = sinon.stub(healthModel, 'getComponents');
+      // sinon mock
+      componentStub.returns(
+        createHealthComponentFunction(dummyMockLiveComp(), dummyMockReadyComp())
+      );
+      let res = await request.get(v1BasePath + '/app/live').expect(200);
+
+      res.body.should.have.property('status', 'ok');
+      // clear
+      healthService.clearHealthComponents(); // need to reset the reference
+      componentStub.restore();
+    });
+
+    it('PassLiveCheckWhenAllDependencyPass', async function () {
+      let componentStub = sinon.stub(healthModel, 'getComponents');
+      const liveMockComponents = [
+        ...mockLiveComp('service1', true),
+        ...mockLiveComp('service2', true)
+      ];
+      // sinon mock
+      componentStub.returns(
+        createHealthComponentFunction(liveMockComponents, dummyMockReadyComp())
+      );
+      await request.get(v1BasePath + '/app/live').expect(200);
+      // clear
+      healthService.clearHealthComponents(); // need to reset the reference
+      componentStub.restore();
+    });
+  });
+
   describe('CreateUpdateDelete', async function () {
     describe('GetUsers', async function () {
       it('FailAdditionalQueryParameter', async function () {
@@ -93,8 +283,8 @@ describe('UserService', async function () {
         let users = await request.get(v1BasePath + '/users').expect(200);
 
         users.body.should.have.property('count', 0);
-        users.body.should.have.property('values');
-        users.body.values.length.should.be.eql(0);
+        users.body.should.have.property('value');
+        users.body.value.length.should.be.eql(0);
 
         await request.get(v1BasePath + '/users/' + 'randomId').expect(404);
       });
@@ -104,8 +294,8 @@ describe('UserService', async function () {
         let users = await request.get(v1BasePath + '/users').expect(200);
 
         users.body.should.have.property('count', 0);
-        users.body.should.have.property('values');
-        users.body.values.length.should.be.eql(0);
+        users.body.should.have.property('value');
+        users.body.value.length.should.be.eql(0);
 
         await request
           .get(v1BasePath + '/users/' + 'thisIsReallyLongUserIsMaxIs12')
@@ -120,8 +310,8 @@ describe('UserService', async function () {
           .expect(200);
 
         users.body.should.have.property('count', 0);
-        users.body.should.have.property('values');
-        users.body.values.length.should.be.eql(0);
+        users.body.should.have.property('value');
+        users.body.value.length.should.be.eql(0);
 
         const req = createReq();
         const res = await request
@@ -150,16 +340,16 @@ describe('UserService', async function () {
         let users = await request.get(v1BasePath + '/users').expect(200);
 
         users.body.should.have.property('count', 0);
-        users.body.should.have.property('values');
-        users.body.values.length.should.be.eql(0);
+        users.body.should.have.property('value');
+        users.body.value.length.should.be.eql(0);
         const count = 3;
         await bulkCreateUsers(count);
         // get user and check properties
         users = await request.get(v1BasePath + '/users').expect(200);
 
         users.body.should.have.property('count', count);
-        users.body.should.have.property('values');
-        users.body.values.length.should.be.eql(count);
+        users.body.should.have.property('value');
+        users.body.value.length.should.be.eql(count);
       });
     });
 
@@ -175,8 +365,8 @@ describe('UserService', async function () {
         let users = await request.get(v1BasePath + '/users').expect(200);
 
         users.body.should.have.property('count', 0);
-        users.body.should.have.property('values');
-        users.body.values.length.should.be.eql(0);
+        users.body.should.have.property('value');
+        users.body.value.length.should.be.eql(0);
       });
 
       it('FailCreateInvalidName', async function () {
@@ -190,8 +380,8 @@ describe('UserService', async function () {
         let users = await request.get(v1BasePath + '/users').expect(200);
 
         users.body.should.have.property('count', 0);
-        users.body.should.have.property('values');
-        users.body.values.length.should.be.eql(0);
+        users.body.should.have.property('value');
+        users.body.value.length.should.be.eql(0);
       });
 
       it('FailCreateNoAddress', async function () {
@@ -205,8 +395,8 @@ describe('UserService', async function () {
         let users = await request.get(v1BasePath + '/users').expect(200);
 
         users.body.should.have.property('count', 0);
-        users.body.should.have.property('values');
-        users.body.values.length.should.be.eql(0);
+        users.body.should.have.property('value');
+        users.body.value.length.should.be.eql(0);
       });
 
       it('FailCreateRandomAddress', async function () {
@@ -220,8 +410,8 @@ describe('UserService', async function () {
         let users = await request.get(v1BasePath + '/users').expect(200);
 
         users.body.should.have.property('count', 0);
-        users.body.should.have.property('values');
-        users.body.values.length.should.be.eql(0);
+        users.body.should.have.property('value');
+        users.body.value.length.should.be.eql(0);
       });
 
       it('FailCreateNoAge', async function () {
@@ -235,8 +425,8 @@ describe('UserService', async function () {
         let users = await request.get(v1BasePath + '/users').expect(200);
 
         users.body.should.have.property('count', 0);
-        users.body.should.have.property('values');
-        users.body.values.length.should.be.eql(0);
+        users.body.should.have.property('value');
+        users.body.value.length.should.be.eql(0);
       });
 
       it('FailCreateRandomAge', async function () {
@@ -261,8 +451,8 @@ describe('UserService', async function () {
         let users = await request.get(v1BasePath + '/users').expect(200);
 
         users.body.should.have.property('count', 0);
-        users.body.should.have.property('values');
-        users.body.values.length.should.be.eql(0);
+        users.body.should.have.property('value');
+        users.body.value.length.should.be.eql(0);
       });
 
       it('FailCreateBadIsActive', async function () {
@@ -288,8 +478,8 @@ describe('UserService', async function () {
         let users = await request.get(v1BasePath + '/users').expect(200);
 
         users.body.should.have.property('count', 0);
-        users.body.should.have.property('values');
-        users.body.values.length.should.be.eql(0);
+        users.body.should.have.property('value');
+        users.body.value.length.should.be.eql(0);
       });
 
       it('createUser', async function () {
@@ -492,8 +682,8 @@ describe('UserService', async function () {
         // get all users
         res = await request.get(v1BasePath + '/users').expect(200);
         res.body.should.have.property('count', 0);
-        res.body.should.have.property('values');
-        res.body.values.length.should.be.eql(0);
+        res.body.should.have.property('value');
+        res.body.value.length.should.be.eql(0);
       });
 
       it('DeleteAllUsers', async function () {
@@ -502,8 +692,8 @@ describe('UserService', async function () {
 
         let res = await request.get(v1BasePath + '/users').expect(200);
         res.body.should.have.property('count', count);
-        res.body.should.have.property('values');
-        res.body.values.length.should.be.eql(count);
+        res.body.should.have.property('value');
+        res.body.value.length.should.be.eql(count);
         // delete all users
         res = await request.delete(v1BasePath + '/users').expect(200);
         res.body.should.have.property('count', count);
@@ -511,8 +701,8 @@ describe('UserService', async function () {
         // get all user and check the count
         res = await request.get(v1BasePath + '/users').expect(200);
         res.body.should.have.property('count', 0);
-        res.body.should.have.property('values');
-        res.body.values.length.should.be.eql(0);
+        res.body.should.have.property('value');
+        res.body.value.length.should.be.eql(0);
       });
     });
   });
@@ -542,32 +732,32 @@ describe('UserService', async function () {
         .get(v1BasePath + `/users?$top=${top}`)
         .expect(200);
       res.body.should.have.property('count', count);
-      res.body.should.have.property('values');
-      res.body.values.should.have.length(top);
+      res.body.should.have.property('value');
+      res.body.value.should.have.length(top);
 
       // apply skip
       res = await request
         .get(v1BasePath + `/users?$top=${top}&$skip=${skip}`)
         .expect(200);
-      res.body.should.have.property('count', count - skip);
-      res.body.should.have.property('values');
-      res.body.values.should.have.length(top);
+      res.body.should.have.property('count', count);
+      res.body.should.have.property('value');
+      res.body.value.should.have.length(top);
 
       // apply skip
       res = await request
         .get(v1BasePath + `/users?$top=13&$skip=7`)
         .expect(200);
-      res.body.should.have.property('count', 13);
-      res.body.should.have.property('values');
-      res.body.values.should.have.length(13);
+      res.body.should.have.property('count', count);
+      res.body.should.have.property('value');
+      res.body.value.should.have.length(13);
 
       // apply skip
       res = await request
         .get(v1BasePath + `/users?$top=20&$skip=21`)
         .expect(200);
-      res.body.should.have.property('count', 0);
-      res.body.should.have.property('values');
-      res.body.values.should.have.length(0);
+      res.body.should.have.property('count', count);
+      res.body.should.have.property('value');
+      res.body.value.should.have.length(0);
     });
 
     it('FailSortUsersBadParameter', async function () {
@@ -592,6 +782,28 @@ describe('UserService', async function () {
         .expect(400);
     });
 
+    it('PassSortUsersWithAdditionalSpaces', async function () {
+      // create bulk users
+      const count = 20;
+      await bulkCreateUsers(count);
+      let params = {
+        $sortBy: ' +age ',
+        $top: count
+      };
+      await request
+        .get(v1BasePath + '/users?' + encodeGetParams(params))
+        .expect(200);
+
+      params = {
+        $sortBy: ' +age  +name ',
+        $top: count
+      };
+
+      await request
+        .get(v1BasePath + '/users?' + encodeGetParams(params))
+        .expect(200);
+    });
+
     it('SortUsers', async function () {
       // create bulk users
       const count = 20;
@@ -604,9 +816,9 @@ describe('UserService', async function () {
         .get(v1BasePath + '/users?' + encodeGetParams(params))
         .expect(200);
       res.body.should.have.property('count', count);
-      res.body.should.have.property('values');
+      res.body.should.have.property('value');
       for (let index = 0; index < count; index++) {
-        res.body.values[index].age.should.be.eql(index);
+        res.body.value[index].age.should.be.eql(index);
       }
 
       params = {
@@ -618,10 +830,10 @@ describe('UserService', async function () {
         .get(v1BasePath + '/users?' + encodeGetParams(params))
         .expect(200);
       res.body.should.have.property('count', count);
-      res.body.should.have.property('values');
+      res.body.should.have.property('value');
 
       for (let index = count - 1; index >= count; index--) {
-        res.body.values[index].age.should.be.eql(index);
+        res.body.value[index].age.should.be.eql(index);
       }
 
       // use skip also
@@ -633,11 +845,11 @@ describe('UserService', async function () {
       res = await request
         .get(v1BasePath + '/users?' + encodeGetParams(params))
         .expect(200);
-      res.body.should.have.property('count', count - 10);
-      res.body.should.have.property('values');
+      res.body.should.have.property('count', count);
+      res.body.should.have.property('value');
 
       for (let index = 0; index < 10; index++) {
-        res.body.values[index].age.should.be.eql(index + 10);
+        res.body.value[index].age.should.be.eql(index + 10);
       }
     });
   });
@@ -671,9 +883,9 @@ describe('UserService', async function () {
         .get(v1BasePath + '/users?' + encodeGetParams(params))
         .expect(200);
       res.body.should.have.property('count', count);
-      res.body.should.have.property('values');
-      res.body.values.length.should.eql(count);
-      res.body.values.forEach((user) => {
+      res.body.should.have.property('value');
+      res.body.value.length.should.eql(count);
+      res.body.value.forEach((user) => {
         user.should.not.have.property('age');
         user.should.not.have.property('createdAt');
         user.should.have.property('name');
@@ -692,10 +904,36 @@ describe('UserService', async function () {
         .get(v1BasePath + '/users?' + encodeGetParams(params))
         .expect(200);
       res.body.should.have.property('count', count);
-      res.body.should.have.property('values');
-      res.body.values.length.should.eql(count);
-      res.body.values.forEach((user) => {
+      res.body.should.have.property('value');
+      res.body.value.length.should.eql(count);
+      res.body.value.forEach((user) => {
         user.should.have.property('age');
+        user.should.not.have.property('createdAt');
+        user.should.have.property('name');
+        user.should.have.property('address');
+        user.should.have.property('id');
+        user.should.have.property('updatedAt');
+      });
+    });
+
+    it('PassProjectionWithAdditionalSpacesTest', async function () {
+      // create a users
+      const count = 4;
+      await bulkCreateUsers(count);
+      // query users
+      let params = {
+        $projection: ` -age   -createdAt `,
+        $top: count
+      };
+
+      let res = await request
+        .get(v1BasePath + '/users?' + encodeGetParams(params))
+        .expect(200);
+      res.body.should.have.property('count', count);
+      res.body.should.have.property('value');
+      res.body.value.length.should.eql(count);
+      res.body.value.forEach((user) => {
+        user.should.not.have.property('age');
         user.should.not.have.property('createdAt');
         user.should.have.property('name');
         user.should.have.property('address');
@@ -706,15 +944,6 @@ describe('UserService', async function () {
   });
 
   describe('FilterTest', async function () {
-    function checkData(res, field, targetValues) {
-      // gather all vales
-      const data = new Set(res.body.values.map((user) => user[`${field}`]));
-      // check all values
-      for (let val of targetValues) {
-        data.has(val).should.eql(true);
-      }
-      data.size.should.eql(targetValues.length);
-    }
     it('FilterGetTestFailBadQuery', async function () {
       // create bulk users
       const count = 20;
@@ -761,7 +990,7 @@ describe('UserService', async function () {
         .get(v1BasePath + '/users?' + encodeGetParams(params))
         .expect(200);
       res.body.should.have.property('count', 10); // only 10 record should match the above criteria
-      res.body.should.have.property('values');
+      res.body.should.have.property('value');
       checkData(res, 'age', [10, 11, 12, 13, 14, 15, 16, 17, 18, 19]);
 
       params = {
@@ -772,7 +1001,7 @@ describe('UserService', async function () {
         .get(v1BasePath + '/users?' + encodeGetParams(params))
         .expect(200);
       res.body.should.have.property('count', 5);
-      res.body.should.have.property('values');
+      res.body.should.have.property('value');
       checkData(res, 'age', [3, 4, 11, 12, 14]);
 
       params = {
@@ -783,7 +1012,7 @@ describe('UserService', async function () {
         .get(v1BasePath + '/users?' + encodeGetParams(params))
         .expect(200);
       res.body.should.have.property('count', 3);
-      res.body.should.have.property('values');
+      res.body.should.have.property('value');
       checkData(res, 'age', [4, 12, 14]);
     });
 
@@ -836,7 +1065,7 @@ describe('UserService', async function () {
       res = await request
         .get(v1BasePath + '/users?' + encodeGetParams(params))
         .expect(200);
-      const allIds1 = res.body.values.map((element) => element.id);
+      const allIds1 = res.body.value.map((element) => element.id);
       allIds1.length.should.eql(2);
       allIds1.includes(userId1).should.eql(true);
       allIds1.includes(userId2).should.eql(true);
@@ -879,8 +1108,8 @@ describe('UserService', async function () {
         .get(v1BasePath + '/users?' + encodeGetParams(params))
         .expect(200);
       res.body.should.have.property('count', 0);
-      res.body.should.have.property('values');
-      res.body.values.length.should.eql(0);
+      res.body.should.have.property('value');
+      res.body.value.length.should.eql(0);
       // other users and check if the remaining users exist
       params = {
         $top: count // get all users for the given query
@@ -889,8 +1118,8 @@ describe('UserService', async function () {
         .get(v1BasePath + '/users?' + encodeGetParams(params))
         .expect(200);
       res.body.should.have.property('count', 15);
-      res.body.should.have.property('values');
-      res.body.values.length.should.eql(15);
+      res.body.should.have.property('value');
+      res.body.value.length.should.eql(15);
       checkData(
         res,
         'age',
@@ -965,6 +1194,68 @@ describe('UserService', async function () {
       JSON.stringify(query).should.eql(
         `{"$and":[{"name":{"$eq":"dd"}},{"$and":[{"age":{"$eq":10}},{"$or":[{"address":{"$nin":["add1","add2"]}},{"country":{"$eq":"cty"}}]}]}]}`
       );
+    });
+  });
+
+  describe('PaginationLinksTest', async function () {
+    const _checkURL = function (expectedURL, actualURL) {
+      let [expectedBasePath, expectedQueryParam] = expectedURL.split('?');
+      let [actualBasePath, actualQueryParam] = actualURL.split('?');
+      expectedBasePath.should.eql(actualBasePath);
+      let expectedQueryParamMap = querystring.parse(expectedQueryParam);
+      let actualQueryParamMap = querystring.parse(actualQueryParam);
+      const isQueryParamEqual = util.isDeepStrictEqual(
+        expectedQueryParamMap,
+        actualQueryParamMap
+      );
+      isQueryParamEqual.should.eql(true);
+    };
+    it('CheckPaginationLinkObjects', async function () {
+      // top is 10 and skip is 0 in the url
+      let url =
+        'http://localhost:3000/v1/user-service/users?%24top=10&%24skip=0&%24filter=age%20%3E%20%2710%27&%24sortBy=%2Bage%20%20%20%2Bname&%24projection=-name%20%20%20-age';
+      let links = queryHelper.generatePaginationLinks(url, 30);
+
+      links.should.have.propertyByPath('first', 'href');
+      _checkURL(links.first.href, url);
+
+      links.should.have.propertyByPath('last', 'href');
+      _checkURL(
+        links.last.href,
+        'http://localhost:3000/v1/user-service/users?%24top=10&%24skip=20&%24filter=age%20%3E%20%2710%27&%24sortBy=%2Bage%20%20%20%2Bname&%24projection=-name%20%20%20-age'
+      );
+
+      links.should.have.propertyByPath('previous', 'href');
+      _checkURL(
+        links.previous.href,
+        'http://localhost:3000/v1/user-service/users?%24top=10&%24skip=0&%24filter=age%20%3E%20%2710%27&%24sortBy=%2Bage%20%20%20%2Bname&%24projection=-name%20%20%20-age'
+      );
+
+      links.should.have.propertyByPath('next', 'href');
+      _checkURL(
+        links.next.href,
+        'http://localhost:3000/v1/user-service/users?%24top=10&%24skip=10&%24filter=age%20%3E%20%2710%27&%24sortBy=%2Bage%20%20%20%2Bname&%24projection=-name%20%20%20-age'
+      );
+
+      // check next pagination links
+      const nextLink = links.next.href;
+      const lastLink = links.last.href;
+      links = queryHelper.generatePaginationLinks(nextLink, 30);
+
+      links.should.have.propertyByPath('first', 'href');
+      _checkURL(links.first.href, url);
+
+      links.should.have.propertyByPath('last', 'href');
+      _checkURL(
+        links.last.href,
+        'http://localhost:3000/v1/user-service/users?%24top=10&%24skip=20&%24filter=age%20%3E%20%2710%27&%24sortBy=%2Bage%20%20%20%2Bname&%24projection=-name%20%20%20-age'
+      );
+
+      links.should.have.propertyByPath('previous', 'href');
+      _checkURL(links.previous.href, url);
+
+      links.should.have.propertyByPath('next', 'href');
+      _checkURL(links.next.href, lastLink);
     });
   });
 });

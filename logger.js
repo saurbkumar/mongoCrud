@@ -9,7 +9,7 @@ const logOptions = {
   transports: [new winston.transports.Console()],
   format: winston.format.combine(
     winston.format.timestamp({
-      format: 'MMM-DD-YYYY HH:mm:ss.SSS'
+      colorize: false
     }),
     winston.format.json()
   ),
