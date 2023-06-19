@@ -1,10 +1,10 @@
 // for live and readiness probe
-const mongoDBHelper = require('../helpers/mongoHelper');
+const dbHelper = require('../helpers/mongoHelper');
 const components = [
   {
     name: 'mongoDB',
-    live: mongoDBHelper.live,
-    ready: mongoDBHelper.ready
+    live: dbHelper.live,
+    ready: dbHelper.ready
   }
 ];
 function getComponents() {
