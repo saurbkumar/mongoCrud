@@ -867,6 +867,24 @@ describe('UserService', async function () {
       await request
         .get(v1BasePath + '/users?' + encodeGetParams(params))
         .expect(400);
+      params = {
+        $projection: `+age -createdAt` // + and - both not allowed together
+      };
+
+      await request
+        .get(v1BasePath + '/users?' + encodeGetParams(params))
+        .expect(400);
+
+      await request
+        .get(v1BasePath + '/users?' + encodeGetParams(params))
+        .expect(400);
+      params = {
+        $projection: `+aaaage ` // randome field not allowed
+      };
+
+      await request
+        .get(v1BasePath + '/users?' + encodeGetParams(params))
+        .expect(400);
     });
 
     it('ProjectionTest', async function () {
@@ -896,7 +914,28 @@ describe('UserService', async function () {
 
       // use random projection parameter
       params = {
-        $projection: `-assge -createdAt`,
+        $projection: `-age -createdAt`,
+        $top: count
+      };
+
+      res = await request
+        .get(v1BasePath + '/users?' + encodeGetParams(params))
+        .expect(200);
+      res.body.should.have.property('count', count);
+      res.body.should.have.property('value');
+      res.body.value.length.should.eql(count);
+      res.body.value.forEach((user) => {
+        user.should.not.have.property('age');
+        user.should.not.have.property('createdAt');
+        user.should.have.property('name');
+        user.should.have.property('address');
+        user.should.have.property('id');
+        user.should.have.property('updatedAt');
+      });
+
+      // use random projection parameter
+      params = {
+        $projection: `+age   +name`,
         $top: count
       };
 
@@ -908,11 +947,11 @@ describe('UserService', async function () {
       res.body.value.length.should.eql(count);
       res.body.value.forEach((user) => {
         user.should.have.property('age');
-        user.should.not.have.property('createdAt');
         user.should.have.property('name');
-        user.should.have.property('address');
         user.should.have.property('id');
-        user.should.have.property('updatedAt');
+        user.should.not.have.property('createdAt');
+        user.should.not.have.property('address');
+        user.should.not.have.property('updatedAt');
       });
     });
 

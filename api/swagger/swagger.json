@@ -190,7 +190,7 @@
           {
             "name": "$projection",
             "in": "query",
-            "description": "Remove fields. Use '-' for removal. <br> EX: -name -age, will remove name and age ",
+            "description": "Remove fields. Use '-' for removal. <br> EX: -name -age, will remove name and age. <br> EX: +name +age, will just give name and age . <br> '-' and '+' can not used together",
             "required": false,
             "schema": {
               "type": "string",
@@ -503,7 +503,7 @@
       },
       "Users": {
         "type": "object",
-        "required": ["count", "value", "first", "last", "previous", "next"],
+        "required": ["count", "value", "links", "last", "previous", "next"],
         "properties": {
           "count": {
             "type": "integer",
