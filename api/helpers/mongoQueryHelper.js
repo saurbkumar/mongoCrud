@@ -64,6 +64,13 @@ function transformMongoProjection(projection) {
       } else {
         mongoProjection.push(field);
       }
+      //
+      if (!queryFields.has(projectionField)) {
+        throw {
+          message: `Random projections not allowed`,
+          statusCode: 400
+        };
+      }
       projectionFields.push(projectionField);
     });
   // check if + and - are not mixed together
@@ -73,14 +80,6 @@ function transformMongoProjection(projection) {
       statusCode: 400
     };
   }
-  projectionFields.forEach((element) => {
-    if (!queryFields.has(element)) {
-      throw {
-        message: `Random projections not allowed`,
-        statusCode: 400
-      };
-    }
-  });
 
   return mongoProjection.join(' ');
 }
