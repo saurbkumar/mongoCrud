@@ -5,7 +5,8 @@
 ## About The Project
 
 A full fledge rest app powered by express. The idea of this project is to bring up your microservices fast, with inbuilt request validations, connection to the database
-and fully working rest APIs
+and fully working rest APIs.  
+**Note** This project is generated through [generator-rest-swagger-express](https://www.npmjs.com/package/generator-rest-swagger-express)  
 To see all the application features, see [feature](#service-features) section:  
 <!-- GETTING STARTED -->
 
@@ -17,7 +18,7 @@ This is an example of how you may give instructions on setting up your project l
 
 - You need a mongoDB up and running. To do that, use docker  
   You can run it as a [docker](https://hub.docker.com/_/mongo) or install it as a [standalone application](https://www.mongodb.com/try/download/community)
-
+  Note: In your local setup, by default service will connect to the test database. To see the database name and database authentication details see default.json file
 - Node.js > v14 needed. You can get it [here](https://nodejs.org/en/download/)
 - Better install mocha on global level `npm install --global mocha`
 
@@ -36,21 +37,11 @@ This is an example of how you may give instructions on setting up your project l
 Type `npm start`. Few lines will comes up and then go to ["http://localhost:3000/user-service/docs"](http://localhost:3000/user-service/docs/#/). You should see swagger doc
 
 <p align="right">(<a href="#top">back to top</a>)</p>
-
-<!-- ROADMAP -->
-## Roadmap
-
-- [ ] Add correlationId to every log
-- [ ] Add support for the virtuals
-- [ ] Add SSE support.
-
-<p align="right">(<a href="#top">back to top</a>)</p>
-
 <!-- Explore -->
 ## Explore The Project
 
 Once you generate this project using [generator](https://www.npmjs.com/package/generator-rest-swagger-express), you will see this kind of directory structure.  
-The top-level working of this project is like TODO: Insert image here for the overall working
+The top-level working of this project is like
 
 ```
  |-app.js
@@ -117,6 +108,23 @@ Reqest flow diagram
 This service has out of the box support [sorting](#sorting), [filter](#filter), [projection](#projection) and [pagination](#pagination), background tasks, [Metrics](#metrics)  
 Assuming this service have `name, age, address, country` fields in the the schema. Then following features are available  
 
+<!-- Managing configurations-->
+
+## Managing configurations
+
+All the service configurations are managed through [config](https://www.npmjs.com/package/config) npm package. For your local development, all the configurations are under `config/default.json`. You can override these in production or in dev environment using `config/production.json`or `config/development.json`. The current default database configuration looks like
+
+```
+...
+  "Database": {
+    "server": "mongodb://localhost:27017",  --- database server URL
+    "name": "test",                         --- database name
+    "user": "",
+    "password": "",
+    "logging": false
+  },
+...
+```
 <!-- Sorting -->
 ## Sorting
 

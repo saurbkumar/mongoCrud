@@ -1,5 +1,8 @@
 const queryHooks = require('../helpers/queryHooks');
 const allowedSortFields = new Set(queryHooks.mapping().sortFields);
+const queryFields = new Set(
+  queryHooks.mapping().queryFields.map((queryField) => queryField.name)
+);
 
 module.exports = {
   transformSortBy: transformMongoSortBy,
@@ -40,17 +43,43 @@ function transformMongoProjection(projection) {
   if (!projection) {
     return '';
   }
+  let mongoProjection = [];
+  let allProjectionType = new Set();
+  const projectionFields = [];
   projection
     .split(' ')
     .filter((field) => field) // remove addtional spaces, all the spaces will be false
     .forEach((field) => {
-      const projectionType = field.substring(0, 1);
-      if (projectionType != '-') {
+      const projectionType = field[0];
+      const projectionField = field.substring(1);
+      allProjectionType.add(projectionType);
+      if (projectionType != '-' && projectionType != '+') {
         throw {
-          message: `${projectionType} is not allowed. only '-' is allowed Bad request`,
+          message: `${projectionType} is not allowed. only '+' and '-' are allowed Bad request`,
           statusCode: 400
         };
       }
+      if (projectionType === '+') {
+        mongoProjection.push(field.substring(1));
+      } else {
+        mongoProjection.push(field);
+      }
+      //
+      if (!queryFields.has(projectionField)) {
+        throw {
+          message: `Random projections not allowed`,
+          statusCode: 400
+        };
+      }
+      projectionFields.push(projectionField);
     });
-  return projection;
+  // check if + and - are not mixed together
+  if (allProjectionType.size > 1) {
+    throw {
+      message: `projection can not be mixed together, either use + or -`,
+      statusCode: 400
+    };
+  }
+
+  return mongoProjection.join(' ');
 }
