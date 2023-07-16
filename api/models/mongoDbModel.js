@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const mongoHelper = require('../helpers/mongoHelper');
-const queryHelper = require('../helpers/queryHelper');
+const queryHelper = require('../helpers/mongoQueryHelper');
 
 const logger = require('../../logger')(__filename);
 const shortId = require('../helpers/shortId');
@@ -93,8 +93,8 @@ async function deleteUser(id) {
 }
 async function getUsers(top, skip, filter, sortBy, projection) {
   const sortConfig = queryHelper.transformSortBy(sortBy);
-  const filterConfig = queryHelper.transformQuery(filter);
-  const projectionConfig = queryHelper.transFormProjection(projection);
+  const filterConfig = queryHelper.transformFilterQuery(filter);
+  const projectionConfig = queryHelper.transformProjection(projection);
   logger.info(
     `getUsers: getting users, top: ${top}, skip: ${skip}, filter: ${filter}, sortBy: ${sortConfig}, projection: ${projection}`
   );
@@ -118,7 +118,7 @@ async function getUsers(top, skip, filter, sortBy, projection) {
 }
 
 async function deleteUsers(filter) {
-  const filterConfig = queryHelper.transformQuery(filter);
+  const filterConfig = queryHelper.transformFilterQuery(filter);
   logger.info(
     `deleteUsers: removing all users, for query: ${JSON.stringify(
       filterConfig
